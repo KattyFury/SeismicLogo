@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>SeismicLogo</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a1a1a">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600&family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box; margin: 0; padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body { height: 100%; overflow: hidden; background: #fff; font-family: 'Roboto', sans-serif; }
+
+    /* ── Header ───────────────────────────────────── */
+    #header {
+      height: 52px; display: flex; align-items: center; justify-content: center;
+      position: relative; background: #fff; border-bottom: 1px solid #f0e8ec;
+      flex-shrink: 0; z-index: 10;
+    }
+    #header h1 {
+      font-family: 'Roboto Condensed', sans-serif;
+      font-size: 26px; letter-spacing: 0.5px; line-height: 1; font-weight: 600;
+    }
+    #header h1 .s { color: #825A6D; }
+    #header h1 .l { color: #000; }
+
+    #lang-switcher { position: absolute; right: 12px; display: flex; gap: 2px; }
+    .lang-btn {
+      padding: 4px 9px; border-radius: 6px; border: 1.5px solid #e8dce3;
+      background: none; font-family: 'Roboto', sans-serif; font-size: 11px;
+      font-weight: 700; color: #aaa; cursor: pointer; letter-spacing: 0.4px;
+      transition: all 0.15s; min-width: 34px; text-align: center;
+    }
+    .lang-btn.lang-active { background: #825A6D; border-color: #825A6D; color: #fff; }
+
+    /* ── Layout ───────────────────────────────────── */
+    #main { display: flex; flex-direction: column; height: calc(100vh - 52px); }
+
+    /* ── Image area ───────────────────────────────── */
+    #image-area {
+      flex: 0 0 60%; min-height: 0; position: relative; background: #f7f3f5;
+      overflow: hidden; display: flex; align-items: center; justify-content: center;
+    }
+    #image-placeholder {
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+      color: #c4a8b3; pointer-events: none;
+    }
+    #image-placeholder svg { width: 72px; height: 72px; }
+    #image-placeholder p   { font-size: 15px; font-weight: 400; }
+    #tap-layer    { position: absolute; inset: 0; z-index: 1; cursor: pointer; }
+    #photo-canvas { position: absolute; display: none; z-index: 2; }
+
+    /* ── Overlays ─────────────────────────────────── */
+    .overlay-item {
+      position: absolute; z-index: 3; touch-action: none; user-select: none; cursor: grab;
+    }
+    .overlay-item:active { cursor: grabbing; }
+    .overlay-item.item-active { box-shadow: 0 0 0 4px #39FF14; border-radius: 3px; }
+
+    /* Logo item */
+    .logo-item img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; display: block; }
+
+    /* Text item — inline-block so box fits content, max-width caps it */
+    .text-item { display: inline-block; }
+    .text-display {
+      display: block;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      white-space: pre-wrap; word-break: break-word;
+      line-height: 1.25; text-align: center;
+      outline: none; cursor: text;
+      caret-color: #39FF14;
+    }
+    /* Color schemes */
+    .text-display.scheme-dark  { color: #fff; background: #000; }
+    .text-display.scheme-light { color: #000; background: #fff; }
+
+    /* ── Rotate handle ───────────────────────────────── */
+    .rotate-handle {
+      display: none;
+      position: absolute; top: -13px; right: -13px;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: #fff; border: 2px solid #39FF14;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+      cursor: crosshair; z-index: 20; touch-action: none;
+      /* rotation icon */
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M21.5 2v6h-6'/%3E%3Cpath d='M21.34 15.57a10 10 0 1 1-.57-8.38'/%3E%3C/svg%3E");
+      background-size: 14px; background-repeat: no-repeat; background-position: center;
+    }
+    .item-active .rotate-handle { display: block; }
+
+    /* ── Text color toolbar (floats above keyboard) ───── */
+    #text-toolbar {
+      display: none;
+      position: fixed; left: 0; right: 0;
+      padding: 6px 0;
+      align-items: center; justify-content: center;
+      z-index: 999; pointer-events: none;
+    }
+    #text-toolbar.visible { display: flex; }
+    #scheme-switch {
+      display: flex; gap: 2px;
+      background: #f0ecee; border-radius: 8px; padding: 3px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+      pointer-events: all;
+    }
+    .scheme-btn {
+      padding: 5px 20px; border-radius: 6px; border: none;
+      font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 12px;
+      letter-spacing: 0.5px; cursor: pointer;
+      background: transparent; color: #aaa;
+      transition: all 0.15s;
+    }
+    .scheme-btn.active.scheme-btn-dark  { background: #000; color: #fff; }
+    .scheme-btn.active.scheme-btn-light { background: #fff; color: #000; border: 1.5px solid #ddd; }
+
+
+    /* ── Controls ─────────────────────────────────── */
+    #controls {
+      flex: 1 1 0; min-height: 0; background: #fff; border-top: 1px solid #f0e8ec;
+      padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 8px;
+      overflow-y: auto;
+    }
+    .row-label { font-size: 11px; color: #999; font-weight: 500; letter-spacing: 0.4px; text-transform: uppercase; }
+
+    .logo-grid { display: grid; grid-template-columns: repeat(6, 44px); gap: 5px; justify-content: center; }
+    .logo-btn {
+      width: 44px; height: 44px; border-radius: 8px; border: 2px solid #eee;
+      padding: 5px; background: #fafafa; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .logo-btn img { width: 100%; height: 100%; object-fit: contain; }
+    .logo-btn:active { opacity: 0.7; }
+
+    #gesture-hint { font-size: 12px; color: #bbb; text-align: center; line-height: 1.4; }
+
+    .action-row { display: flex; gap: 6px; }
+    .btn {
+      flex: 1; height: 42px; border: none; border-radius: 12px;
+      font-family: 'Roboto', sans-serif; font-size: 12px; font-weight: 500;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: 4px; transition: opacity 0.15s, transform 0.1s; outline: none; white-space: nowrap;
+    }
+    .btn:active:not(:disabled) { opacity: 0.8; transform: scale(0.97); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-delete  { background: #fff0f4; color: #b03055; border: 1.5px solid #f5c6d3; }
+    .btn-addtext { background: #f5f0f3; color: #825A6D; border: 1.5px solid #e0d4db; }
+    .btn-save    { background: #825A6D; color: #fff; }
+
+    /* ── Clear photo button ───────────────────────── */
+    #btn-clear-photo {
+      display: none; position: absolute; top: 8px; right: 8px; z-index: 5;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(0,0,0,0.4); border: none; cursor: pointer;
+      align-items: center; justify-content: center; color: #fff;
+      transition: background 0.15s;
+    }
+    #btn-clear-photo:hover { background: rgba(0,0,0,0.65); }
+    #btn-clear-photo.visible { display: flex; }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(90px);
+      background: rgba(20,10,15,0.85); color: #fff; padding: 10px 22px;
+      border-radius: 22px; font-size: 14px; font-weight: 500;
+      transition: transform 0.28s cubic-bezier(.25,.8,.25,1);
+      z-index: 999; white-space: nowrap; pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #file-input { display: none; }
+
+    /* ── Desktop wrapper ──────────────────────────────── */
+    @media (min-width: 500px) {
+      body { background: #e8dce3; display: flex; align-items: flex-start; justify-content: center; }
+      #header, #main {
+        max-width: 430px; width: 100%;
+      }
+      #header {
+        position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+        box-shadow: 0 1px 6px rgba(130,90,109,0.12);
+      }
+      #main { margin-top: 52px; height: calc(100vh - 52px); }
+    }
+
+  </style>
+</head>
+<body>
+
+<header id="header">
+  <h1><span class="s">Seismic</span><span class="l">Logo</span></h1>
+  <div id="lang-switcher">
+    <button class="lang-btn lang-active" id="btn-en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn"             id="btn-vi" onclick="setLang('vi')">VI</button>
+  </div>
+</header>
+
+<div id="main">
+  <div id="image-area">
+    <div id="image-placeholder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+        <rect x="3" y="3" width="18" height="18" rx="2.5" ry="2.5"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+      <p>Tap to choose a photo</p>
+    </div>
+    <div id="tap-layer"></div>
+    <canvas id="photo-canvas"></canvas>
+    <button id="btn-clear-photo" title="Change photo">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <div id="controls">
+    <span class="row-label">Logo</span>
+    <div class="logo-grid" id="logo-strip"></div>
+
+    <p id="gesture-hint">Drag anywhere to move · 2 fingers to zoom &amp; rotate</p>
+
+    <div class="action-row">
+      <button class="btn btn-delete" id="btn-delete" disabled>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+          <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+        </svg>
+        <span data-i18n="deleteSel">Delete Selection</span>
+      </button>
+      <button class="btn btn-addtext" id="btn-addtext">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>
+        </svg>
+        <span data-i18n="addText">Add Text</span>
+      </button>
+      <button class="btn btn-save" id="btn-save" disabled>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span data-i18n="saveImage">Save Image</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<div id="text-toolbar">
+  <div id="scheme-switch">
+    <button class="scheme-btn scheme-btn-dark" id="scheme-dark">WHITE</button>
+    <button class="scheme-btn scheme-btn-light active" id="scheme-light">BLACK</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<input type="file" id="file-input" accept="image/*">
+
+<script>
+/* ── i18n ────────────────────────────────────────────── */
+const STRINGS = {
+  vi: {
+    placeholder: 'Nhấn để chọn ảnh',
+    hint:        'Chạm bất cứ đâu để di chuyển · 2 ngón để zoom & xoay',
+    deleteSel:   'Xóa lựa chọn',
+    addText:     'Thêm chữ',
+    saveImage:   'Lưu ảnh',
+    rowLabel:    'Logo',
+    toastNoPhoto:'Hãy chọn ảnh trước nhé 📸',
+    toastSaved:  'Ảnh đã được lưu vào thư viện ✓',
+    toastDown:   'Ảnh đã được tải xuống ✓',
+  },
+  en: {
+    placeholder: 'Tap to choose a photo',
+    hint:        'Drag anywhere to move · 2 fingers to zoom & rotate',
+    deleteSel:   'Delete Selection',
+    addText:     'Add Text',
+    saveImage:   'Save Image',
+    rowLabel:    'Logo',
+    toastNoPhoto:'Please choose a photo first 📸',
+    toastSaved:  'Photo saved to library ✓',
+    toastDown:   'Photo downloaded ✓',
+  }
+};
+let currentLang = 'en';
+
+function setLang(lang) {
+  currentLang = lang;
+  const s = STRINGS[lang];
+  document.getElementById('btn-vi').classList.toggle('lang-active', lang === 'vi');
+  document.getElementById('btn-en').classList.toggle('lang-active', lang === 'en');
+  document.querySelector('#image-placeholder p').textContent     = s.placeholder;
+  document.getElementById('gesture-hint').textContent           = s.hint;
+  document.querySelector('[data-i18n="deleteSel"]').textContent  = s.deleteSel;
+  document.querySelector('[data-i18n="addText"]').textContent    = s.addText;
+  document.querySelector('[data-i18n="saveImage"]').textContent  = s.saveImage;
+  document.querySelector('.row-label').textContent               = s.rowLabel;
+}
+
+/* ── Desktop detection ───────────────────────────────── */
+const isDesktop = /Windows|Macintosh|Linux/.test(navigator.userAgent)
+               && !/Android|iPhone|iPad|iPod/.test(navigator.userAgent);
+
+/* ── State ───────────────────────────────────────────── */
+let photoNaturalImg = null;
+let overlayItems    = [];
+let activeItem      = null;
+let nextId          = 1;
+
+/* ── DOM ─────────────────────────────────────────────── */
+const imageArea   = document.getElementById('image-area');
+const tapLayer    = document.getElementById('tap-layer');
+const photoCanvas = document.getElementById('photo-canvas');
+const ctx         = photoCanvas.getContext('2d');
+const btnDelete      = document.getElementById('btn-delete');
+const btnAddText     = document.getElementById('btn-addtext');
+const btnSave        = document.getElementById('btn-save');
+const fileInput      = document.getElementById('file-input');
+const placeholder    = document.getElementById('image-placeholder');
+const btnClearPhoto  = document.getElementById('btn-clear-photo');
+
+/* ── Logo buttons ────────────────────────────────────── */
+const strip = document.getElementById('logo-strip');
+for (let i = 1; i <= 18; i++) {
+  const btn = document.createElement('button');
+  btn.className = 'logo-btn';
+  btn.innerHTML = `<img src="logos/${i}.png" alt="Logo ${i}" loading="lazy">`;
+  btn.addEventListener('click', () => addLogo(i));
+  strip.appendChild(btn);
+}
+
+/* ── File picker ─────────────────────────────────────── */
+tapLayer.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', function () {
+  const file = this.files && this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      photoNaturalImg = img;
+      overlayItems.forEach(item => item.el.remove());
+      overlayItems = []; activeItem = null;
+      refreshControls();
+      drawPhoto();
+      placeholder.style.display = 'none';
+      tapLayer.style.zIndex = '0';
+      photoCanvas.style.display = 'block';
+      btnSave.disabled = false;
+      btnClearPhoto.classList.add('visible');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  this.value = '';
+});
+
+/* ── Clear photo ─────────────────────────────────────── */
+btnClearPhoto.addEventListener('click', () => {
+  photoNaturalImg = null;
+  ctx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
+  photoCanvas.style.display = 'none';
+  placeholder.style.display = '';
+  tapLayer.style.zIndex = '1';
+  overlayItems.forEach(item => item.el.remove());
+  overlayItems = []; activeItem = null;
+  refreshControls();
+  btnSave.disabled = true;
+  btnClearPhoto.classList.remove('visible');
+});
+
+/* ── Draw photo ──────────────────────────────────────── */
+function drawPhoto() {
+  if (!photoNaturalImg) return;
+  const aW = imageArea.clientWidth, aH = imageArea.clientHeight;
+  const ratio = photoNaturalImg.width / photoNaturalImg.height;
+  let cW, cH;
+  if (ratio > aW / aH) { cW = aW; cH = aW / ratio; }
+  else                  { cH = aH; cW = aH * ratio; }
+  photoCanvas.width  = cW; photoCanvas.height = cH;
+  photoCanvas.style.width  = cW + 'px';
+  photoCanvas.style.height = cH + 'px';
+  photoCanvas.style.left   = ((aW - cW) / 2) + 'px';
+  photoCanvas.style.top    = ((aH - cH) / 2) + 'px';
+  ctx.drawImage(photoNaturalImg, 0, 0, cW, cH);
+}
+
+/* ── Helper: is keyboard/contenteditable active? ────── */
+function isTyping() {
+  const ae = document.activeElement;
+  return ae && ae.contentEditable === 'true';
+}
+
+/* ── Add logo ────────────────────────────────────────── */
+function addLogo(num) {
+  if (!photoNaturalImg) { showToast(STRINGS[currentLang].toastNoPhoto); return; }
+  if (isTyping()) blurText();
+  const cW = photoCanvas.clientWidth, cH = photoCanvas.clientHeight;
+  const item = {
+    id: nextId++, type: 'logo', num,
+    x: cW / 2, y: cH / 2,
+    baseSize: Math.min(cW, cH) / 5,
+    scale: 1, rotation: 0, el: null
+  };
+  const el = document.createElement('div');
+  el.className = 'overlay-item logo-item';
+  el.innerHTML = `<img src="logos/${num}.png" alt="logo" draggable="false">`;
+  el.appendChild(makeRotateHandle(item));
+  imageArea.appendChild(el);
+  item.el = el;
+  el.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse') return;
+    e.stopPropagation();
+    if (isTyping()) blurText();
+    setActive(item);
+    el.setPointerCapture(e.pointerId);
+    startDrag(item, e.clientX, e.clientY);
+  });
+  overlayItems.push(item);
+  setActive(item);
+  placeItem(item);
+}
+
+/* ── Add text ────────────────────────────────────────── */
+function addText() {
+  if (!photoNaturalImg) { showToast(STRINGS[currentLang].toastNoPhoto); return; }
+  if (isTyping()) blurText();
+  const cW = photoCanvas.clientWidth, cH = photoCanvas.clientHeight;
+  const item = {
+    id: nextId++, type: 'text',
+    x: cW / 2,                      // centre X of text box
+    y: Math.round(cH * 0.3),        // top Y of text box
+    maxWidth: cW - 16,               // box grows up to this, then wraps
+    baseFontSize: 30,
+    scale: 1, rotation: 0, el: null,
+    colorScheme: 'light'             // 'dark' = white text/black box, 'light' = black text/white box
+  };
+
+  const el = document.createElement('div');
+  el.className = 'overlay-item text-item';
+
+  const display = document.createElement('div');
+  display.className = 'text-display scheme-light';
+  display.contentEditable = 'true';
+  display.setAttribute('spellcheck', 'false');
+  display.setAttribute('autocorrect', 'off');
+  display.setAttribute('autocapitalize', 'characters');
+  display.textContent = 'TEXT';
+
+  el.appendChild(display);
+  el.appendChild(makeRotateHandle(item));
+  imageArea.appendChild(el);
+  item.el = el;
+
+  // Freeze width on blur and capture exact CSS line breaks for canvas export
+  display.addEventListener('blur', () => {
+    item.frozenWidth   = el.offsetWidth;
+    item.renderedLines = captureRenderedLines(display, item.frozenWidth);
+    placeItem(item);
+  });
+  // On focus: switch to min-width mode so box can grow without reflow
+  display.addEventListener('focus', () => { placeItem(item); });
+
+  // Mouse drag with click-to-edit detection
+  let mouseMoved = false;
+  el.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse') return;
+    e.stopPropagation();
+    setActive(item);
+    // If already editing and clicked inside text → let browser handle cursor positioning
+    if (isTyping() && e.target === display) return;
+    e.preventDefault(); // prevent browser from focusing on mousedown
+    el.setPointerCapture(e.pointerId);
+    mouseMoved = false;
+    startDrag(item, e.clientX, e.clientY);
+  });
+  el.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' || drag.item !== item) return;
+    if (!mouseMoved && Math.hypot(e.clientX - drag.ox, e.clientY - drag.oy) > 4) {
+      mouseMoved = true;
+      if (isTyping()) blurText(); // exit edit mode when dragging
+    }
+  });
+  el.addEventListener('pointerup', e => {
+    if (e.pointerType !== 'mouse') return;
+    if (!mouseMoved) {
+      // Was a click, not a drag → enter edit mode
+      display.focus();
+      try {
+        const r = document.createRange();
+        r.selectNodeContents(display);
+        const s = window.getSelection();
+        s.removeAllRanges(); s.addRange(r);
+      } catch(_) {}
+    }
+    mouseMoved = false;
+  });
+
+  overlayItems.push(item);
+  setActive(item);
+  placeItem(item);
+
+  // ⚠️ Must focus SYNCHRONOUSLY inside the click handler — no rAF or setTimeout!
+  // iOS only shows keyboard when focus() is called within the same gesture.
+  display.focus();
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(display);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+  } catch(e) {}
+
+}
+
+btnAddText.addEventListener('click', addText);
+
+/* ── Text color toolbar ──────────────────────────────── */
+const textToolbar = document.getElementById('text-toolbar');
+const schemeDark  = document.getElementById('scheme-dark');
+const schemeLight = document.getElementById('scheme-light');
+
+function refreshSchemeBtns() {
+  const item = activeItem && activeItem.type === 'text' ? activeItem : null;
+  schemeDark.classList.toggle('active',  !!item && item.colorScheme !== 'light');
+  schemeLight.classList.toggle('active', !!item && item.colorScheme === 'light');
+}
+function applyScheme(scheme) {
+  if (!activeItem || activeItem.type !== 'text') return;
+  activeItem.colorScheme = scheme;
+  const display = activeItem.el.querySelector('.text-display');
+  display.classList.toggle('scheme-dark',  scheme === 'dark');
+  display.classList.toggle('scheme-light', scheme === 'light');
+  refreshSchemeBtns();
+}
+
+schemeDark.addEventListener('mousedown',   e => { e.preventDefault(); applyScheme('dark');  });
+schemeLight.addEventListener('mousedown',  e => { e.preventDefault(); applyScheme('light'); });
+schemeDark.addEventListener('touchstart',  e => { e.preventDefault(); applyScheme('dark');  }, { passive: false });
+schemeLight.addEventListener('touchstart', e => { e.preventDefault(); applyScheme('light'); }, { passive: false });
+
+function onViewportChange() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const kbHeight = Math.round(window.innerHeight - vv.height);
+  const textActive = activeItem && activeItem.type === 'text';
+  if (kbHeight > 80 && textActive) {
+    textToolbar.style.bottom = kbHeight + 'px';
+    textToolbar.classList.add('visible');
+    refreshSchemeBtns();
+  } else {
+    textToolbar.classList.remove('visible');
+  }
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', onViewportChange);
+  window.visualViewport.addEventListener('scroll', onViewportChange);
+}
+
+function blurText() {
+  const ae = document.activeElement;
+  if (ae && ae.contentEditable === 'true') ae.blur();
+}
+
+/* ── Set active ──────────────────────────────────────── */
+function setActive(item) {
+  if (activeItem) activeItem.el.classList.remove('item-active');
+  activeItem = item;
+  if (item) item.el.classList.add('item-active');
+  refreshControls();
+}
+
+/* ── Place item ──────────────────────────────────────── */
+function placeItem(item) {
+  const canvasL = parseFloat(photoCanvas.style.left) || 0;
+  const canvasT = parseFloat(photoCanvas.style.top)  || 0;
+  const el = item.el;
+
+  if (item.type === 'logo') {
+    const size = item.baseSize * item.scale;
+    el.style.width     = size + 'px';
+    el.style.height    = size + 'px';
+    el.style.left      = (canvasL + item.x - size / 2) + 'px';
+    el.style.top       = (canvasT + item.y - size / 2) + 'px';
+    el.style.transform = `rotate(${item.rotation}deg)`;
+  } else {
+    // Text: while editing use min-width (no reflow, still allows growth)
+    //       while dragging use fixed width (no reflow from wrap changes)
+    const isFocused = document.activeElement === el.querySelector('.text-display');
+    if (isFocused) {
+      el.style.width    = '';
+      el.style.minWidth = (item.frozenWidth || 0) + 'px';
+      el.style.maxWidth = item.maxWidth + 'px';
+    } else if (item.frozenWidth) {
+      el.style.width    = item.frozenWidth + 'px';
+      el.style.minWidth = '';
+      el.style.maxWidth = 'none';
+    } else {
+      el.style.width    = '';
+      el.style.minWidth = '0';
+      el.style.maxWidth = item.maxWidth + 'px';
+    }
+    el.style.left            = (canvasL + item.x) + 'px';
+    el.style.top             = (canvasT + item.y) + 'px';
+    el.style.transform       = `translateX(-50%) rotate(${item.rotation}deg) scale(${item.scale})`;
+    el.style.transformOrigin = '50% 0';
+  }
+}
+
+/* ── Rotate handle ───────────────────────────────────── */
+function makeRotateHandle(item) {
+  const handle = document.createElement('div');
+  handle.className = 'rotate-handle';
+  let startAngle = 0, startRotation = 0, rotating = false;
+
+  function pivotInPage() {
+    const cL = parseFloat(photoCanvas.style.left) || 0;
+    const cT = parseFloat(photoCanvas.style.top)  || 0;
+    return { x: cL + item.x, y: cT + item.y };
+  }
+
+  handle.addEventListener('pointerdown', e => {
+    e.stopPropagation(); e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    rotating = true;
+    setActive(item);
+    blurText();
+    const p = pivotInPage();
+    startAngle = Math.atan2(e.clientY - p.y, e.clientX - p.x) * 180 / Math.PI;
+    startRotation = item.rotation;
+  });
+  handle.addEventListener('pointermove', e => {
+    if (!rotating) return;
+    const p = pivotInPage();
+    const angle = Math.atan2(e.clientY - p.y, e.clientX - p.x) * 180 / Math.PI;
+    item.rotation = startRotation + (angle - startAngle);
+    placeItem(item);
+  });
+  handle.addEventListener('pointerup',     () => { rotating = false; });
+  handle.addEventListener('pointercancel', () => { rotating = false; });
+  return handle;
+}
+
+/* ── Refresh controls ────────────────────────────────── */
+function refreshControls() {
+  btnDelete.disabled = !activeItem;
+}
+
+/* ── Scroll wheel zoom (desktop) ────────────────────── */
+imageArea.addEventListener('wheel', e => {
+  if (!activeItem || !photoNaturalImg) return;
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.93 : 1.08; // scroll down = shrink, up = grow
+  activeItem.scale = Math.min(6, Math.max(0.1, activeItem.scale * delta));
+  placeItem(activeItem);
+}, { passive: false });
+
+/* ── Escape key = finish text editing ───────────────── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') blurText();
+});
+
+/* ── Drag ────────────────────────────────────────────── */
+let drag = { on: false, item: null, ox: 0, oy: 0, lx: 0, ly: 0 };
+let pendingTextFocus = null; // text item to focus on touchend if tap (not drag)
+
+function startDrag(item, cx, cy) {
+  drag.on = true; drag.item = item;
+  drag.ox = cx; drag.oy = cy;
+  drag.lx = item.x; drag.ly = item.y;
+}
+
+document.addEventListener('pointermove', e => {
+  if (!drag.on || !drag.item) return;
+  const item = drag.item;
+  const cW = photoCanvas.clientWidth, cH = photoCanvas.clientHeight;
+  const dx = e.clientX - drag.ox, dy = e.clientY - drag.oy;
+  if (item.type === 'text') {
+    item.x = drag.lx + dx;
+    item.y = drag.ly + dy;
+  } else {
+    item.x = Math.max(0, Math.min(cW, drag.lx + dx));
+    item.y = Math.max(0, Math.min(cH, drag.ly + dy));
+  }
+  placeItem(item);
+});
+document.addEventListener('pointerup',     () => { drag.on = false; drag.item = null; });
+document.addEventListener('pointercancel', () => { drag.on = false; drag.item = null; });
+
+/* ── Touch ───────────────────────────────────────────── */
+let pinch     = { on: false, d0: 0, s0: 1, angle0: 0, r0: 0 };
+let touchMoved = false;
+// pending drag (for text items where we delay until movement detected)
+let pendingDrag = { active: false, ox: 0, oy: 0 };
+
+function touchDist(t)  { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+function touchAngle(t) { return Math.atan2(t[1].clientY - t[0].clientY, t[1].clientX - t[0].clientX); }
+function isTouchOnItem(touch, item) {
+  const r = item.el.getBoundingClientRect();
+  return touch.clientX >= r.left && touch.clientX <= r.right &&
+         touch.clientY >= r.top  && touch.clientY <= r.bottom;
+}
+
+imageArea.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    const touch = e.touches[0];
+    touchMoved   = false;
+    pendingDrag.active = false;
+
+    // Hit-test
+    let hitItem = null;
+    for (let i = overlayItems.length - 1; i >= 0; i--) {
+      if (isTouchOnItem(touch, overlayItems[i])) { hitItem = overlayItems[i]; break; }
+    }
+    if (hitItem) setActive(hitItem);
+
+    if (!activeItem) return;
+
+    if (activeItem.type === 'text' && !isTyping()) {
+      // Text item not focused: tap should focus/show keyboard — don't preventDefault
+      pendingDrag.active = true;
+      pendingDrag.ox = touch.clientX;
+      pendingDrag.oy = touch.clientY;
+      drag.item = activeItem;
+      drag.lx   = activeItem.x;
+      drag.ly   = activeItem.y;
+      pendingTextFocus = activeItem; // focus on touchend if no drag
+      // Do NOT preventDefault — browser will focus contenteditable on tap
+    } else if (activeItem.type === 'text' && isTyping()) {
+      // Keyboard already up: touch on image = drag text item
+      e.preventDefault();
+      startDrag(activeItem, touch.clientX, touch.clientY);
+    } else {
+      // Logo item: drag from anywhere
+      e.preventDefault();
+      startDrag(activeItem, touch.clientX, touch.clientY);
+    }
+
+  } else if (e.touches.length === 2 && activeItem) {
+    e.preventDefault();
+    blurText();
+    drag.on = false; drag.item = null; pendingDrag.active = false;
+    pinch.on     = true;
+    pinch.d0     = touchDist(e.touches);
+    pinch.s0     = activeItem.scale;
+    pinch.angle0 = touchAngle(e.touches);
+    pinch.r0     = activeItem.rotation;
+  }
+}, { passive: false });
+
+imageArea.addEventListener('touchmove', e => {
+  e.preventDefault();
+
+  if (e.touches.length >= 1) {
+    const touch = e.touches[0];
+
+    // Convert pending drag to real drag once movement detected
+    if (pendingDrag.active && drag.item) {
+      const dx = touch.clientX - pendingDrag.ox, dy = touch.clientY - pendingDrag.oy;
+      if (Math.hypot(dx, dy) > 8) {
+        pendingDrag.active = false;
+        pendingTextFocus = null; // drag started — cancel pending focus
+        drag.on = true;
+        drag.ox = pendingDrag.ox;
+        drag.oy = pendingDrag.oy;
+        touchMoved = true;
+        blurText(); // dismiss keyboard when dragging starts
+      }
+    }
+
+    if (drag.on && drag.item) {
+      const dx = touch.clientX - drag.ox, dy = touch.clientY - drag.oy;
+      touchMoved = true;
+      const item = drag.item;
+      const cW = photoCanvas.clientWidth, cH = photoCanvas.clientHeight;
+      if (item.type === 'text') {
+        // Text can go anywhere — overflow:hidden clips it naturally
+        item.x = drag.lx + dx;
+        item.y = drag.ly + dy;
+      } else {
+        item.x = Math.max(0, Math.min(cW, drag.lx + dx));
+        item.y = Math.max(0, Math.min(cH, drag.ly + dy));
+      }
+      placeItem(item);
+    }
+  }
+
+  if (pinch.on && e.touches.length === 2 && activeItem) {
+    activeItem.scale    = Math.min(6, Math.max(0.1, pinch.s0 * (touchDist(e.touches) / pinch.d0)));
+    activeItem.rotation = pinch.r0 + (touchAngle(e.touches) - pinch.angle0) * 180 / Math.PI;
+    placeItem(activeItem);
+  }
+}, { passive: false });
+
+imageArea.addEventListener('touchend', e => {
+  const pf = pendingTextFocus;
+  pendingDrag.active  = false;
+  pendingTextFocus    = null;
+  if (e.touches.length === 0) { drag.on = false; drag.item = null; }
+  if (e.touches.length < 2)   pinch.on = false;
+  // Tap on text item (no drag) — ensure display gets focus even if tap landed on padding
+  if (pf && !touchMoved) {
+    pf.el.querySelector('.text-display')?.focus();
+  }
+});
+imageArea.addEventListener('touchcancel', () => {
+  drag.on = false; drag.item = null; pinch.on = false; pendingDrag.active = false;
+});
+
+/* ── Delete ──────────────────────────────────────────── */
+btnDelete.addEventListener('click', () => {
+  if (!activeItem) return;
+  blurText();
+  activeItem.el.remove();
+  overlayItems = overlayItems.filter(i => i !== activeItem);
+  const last = overlayItems.length ? overlayItems[overlayItems.length - 1] : null;
+  activeItem = null;
+  if (last) setActive(last);
+  else refreshControls();
+});
+
+/* ── Capture exact CSS line breaks using DOM ruler ──────── */
+// Measures at the actual CSS font size (30px) so metrics match the browser exactly.
+// Canvas measureText at large sizes (e.g. 230px) has different hinting → wrong wraps.
+function captureRenderedLines(display, frozenW) {
+  const text = (display.innerText || 'TEXT').trim().toUpperCase();
+  if (!text) return ['TEXT'];
+  const innerW = frozenW - 28; // minus 14px padding each side
+
+  const ruler = document.createElement('span');
+  ruler.style.cssText = [
+    'font: 600 30px "Barlow Condensed",sans-serif',
+    'white-space: nowrap',
+    'position: fixed',
+    'visibility: hidden',
+    'top: -9999px',
+    'left: -9999px',
+    'pointer-events: none',
+  ].join(';');
+  document.body.appendChild(ruler);
+
+  const lines = [];
+  for (const para of text.split('\n')) {
+    if (!para) { lines.push(''); continue; }
+    const words = para.split(' ');
+    let line = '';
+    for (const word of words) {
+      const test = line ? line + ' ' + word : word;
+      ruler.textContent = test;
+      if (ruler.offsetWidth <= innerW) {
+        line = test;
+      } else {
+        if (line) lines.push(line);
+        ruler.textContent = word;
+        if (ruler.offsetWidth > innerW) {
+          // Word too wide — break by character
+          let chars = '';
+          for (const ch of word) {
+            ruler.textContent = chars + ch;
+            if (ruler.offsetWidth > innerW && chars) { lines.push(chars); chars = ch; }
+            else chars += ch;
+          }
+          line = chars;
+        } else {
+          line = word;
+        }
+      }
+    }
+    if (line) lines.push(line);
+  }
+  document.body.removeChild(ruler);
+  return lines.filter(l => l.length > 0) || ['TEXT'];
+}
+
+/* ── Canvas text wrap helper (word-first, then char fallback) ── */
+function canvasWrapText(ctx, text, maxWidth) {
+  const result = [];
+  for (const para of text.split('\n')) {
+    if (!para) { result.push(''); continue; }
+    const words = para.split(' ');
+    let line = '';
+    for (const word of words) {
+      const testLine = line ? line + ' ' + word : word;
+      if (ctx.measureText(testLine).width <= maxWidth) {
+        line = testLine;
+      } else {
+        if (line) result.push(line);
+        // Single word wider than maxWidth → break by character
+        if (ctx.measureText(word).width > maxWidth) {
+          let chars = '';
+          for (const ch of word) {
+            if (ctx.measureText(chars + ch).width > maxWidth && chars) {
+              result.push(chars); chars = ch;
+            } else { chars += ch; }
+          }
+          line = chars;
+        } else {
+          line = word;
+        }
+      }
+    }
+    if (line) result.push(line);
+  }
+  return result;
+}
+
+/* ── Save ────────────────────────────────────────────── */
+btnSave.addEventListener('click', async () => {
+  if (!photoNaturalImg) return;
+  blurText();
+  btnSave.disabled = true;
+  await document.fonts.ready;
+
+  const out = document.createElement('canvas');
+  out.width  = photoNaturalImg.naturalWidth;
+  out.height = photoNaturalImg.naturalHeight;
+  const octx = out.getContext('2d');
+  octx.drawImage(photoNaturalImg, 0, 0);
+
+  const cW = photoCanvas.clientWidth,  cH = photoCanvas.clientHeight;
+  const sx = photoNaturalImg.naturalWidth  / cW;
+  const sy = photoNaturalImg.naturalHeight / cH;
+
+  for (const item of overlayItems) {
+    octx.save();
+    octx.translate(item.x * sx, item.y * sy);
+    octx.rotate(item.rotation * Math.PI / 180);
+
+    if (item.type === 'logo') {
+      const lImg = new Image();
+      lImg.crossOrigin = 'anonymous';
+      lImg.src = `logos/${item.num}.png`;
+      await new Promise(r => { lImg.onload = r; lImg.onerror = r; });
+      const size   = item.baseSize * item.scale;
+      const natSz  = size * sx;
+      const aspect = lImg.naturalWidth / lImg.naturalHeight;
+      let drawW, drawH;
+      if (aspect >= 1) { drawW = natSz; drawH = natSz / aspect; }
+      else             { drawH = natSz; drawW = natSz * aspect; }
+      octx.drawImage(lImg, -drawW / 2, -drawH / 2, drawW, drawH);
+
+    } else if (item.type === 'text') {
+      const fs    = item.baseFontSize * item.scale * sx;
+      const rendW = (item.frozenWidth || item.el.offsetWidth) * item.scale;
+      const boxW  = rendW * sx;
+      // Padding scales with item.scale (matches CSS visual appearance)
+      const padV  = 6  * item.scale * sx;
+      const padH  = 14 * item.scale * sx;
+      const maxW  = boxW - padH * 2;
+      const lineH = fs * 1.25;
+
+      octx.font = `600 ${fs}px "Barlow Condensed"`;
+
+      const rawText = (item.el.querySelector('.text-display').innerText || 'TEXT').toUpperCase();
+      // Use DOM-captured lines (exact CSS wrapping) if available, else fall back to canvas measure
+      const lines = (item.renderedLines && item.renderedLines.length > 0)
+        ? item.renderedLines
+        : canvasWrapText(octx, rawText, maxW);
+      const boxH    = lines.length * lineH + padV * 2;
+
+      // Box colour depends on colorScheme
+      const isDark  = (item.colorScheme || 'light') === 'dark';
+      const boxClr  = isDark ? '#000000' : '#ffffff';
+      const txtClr  = isDark ? '#ffffff' : '#000000';
+
+      octx.fillStyle = boxClr;
+      octx.fillRect(-boxW / 2, 0, boxW, boxH);
+
+      // Text — centred horizontally inside box
+      octx.fillStyle    = txtClr;
+      octx.textAlign    = 'center';
+      octx.textBaseline = 'top';
+      lines.forEach((line, idx) => {
+        octx.fillText(line, 0, padV + idx * lineH);
+      });
+    }
+    octx.restore();
+  }
+
+  out.toBlob(async blob => {
+    const file = new File([blob], 'SeismicLogo_photo.jpg', { type: 'image/jpeg' });
+    // Desktop → always download (Windows Share Sheet doesn't save to disk)
+    if (!isDesktop && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'SeismicLogo' });
+        showToast(STRINGS[currentLang].toastSaved);
+        btnSave.disabled = false; return;
+      } catch (err) {
+        if (err.name === 'AbortError') { btnSave.disabled = false; return; }
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'SeismicLogo_photo.jpg';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    showToast(STRINGS[currentLang].toastDown);
+    btnSave.disabled = false;
+  }, 'image/jpeg', 0.95);
+});
+
+/* ── Toast ───────────────────────────────────────────── */
+let toastTimer;
+function showToast(msg) {
+  clearTimeout(toastTimer);
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+/* ── Resize ──────────────────────────────────────────── */
+window.addEventListener('resize', () => {
+  if (photoNaturalImg) {
+    drawPhoto();
+    overlayItems.forEach(item => placeItem(item));
+  }
+});
+</script>
+</body>
+</html>
+   
