@@ -30,7 +30,6 @@
       --neon:         #39FF14;
       --gap:          6px;
       --side-margin:  20px;   /* every row aligns to this left/right edge */
-      --pfp-gutter:   40px;   /* rows 8-9 only — wide enough to seat a swipe arrow */
     }
 
     *, *::before, *::after {
@@ -134,8 +133,9 @@
       overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
     }
 
-    /* ── Rows 8-9: PFP grid — own 40px side gutter (not --side-margin),
-       sized exactly to seat a swipe arrow with no overlap on the grid ── */
+    /* ── Rows 8-9: PFP grid — same 20px --side-margin as every other row;
+       swipe arrows float over the edge PFPs rather than getting their
+       own gutter ── */
     #pfp-wrap {
       grid-row: 22 / 28; min-height: 0; position: relative;
     }
@@ -147,15 +147,14 @@
       box-shadow: 0 2px 8px rgba(91,63,36,0.16);
     }
     .swipe-arrow.visible { display: flex; }
-    /* centred inside the 40px gutter: (40px - 26px) / 2 */
-    #arrow-left  { left: 7px; }
-    #arrow-right { right: 7px; }
+    #arrow-left  { left: var(--side-margin); }
+    #arrow-right { right: var(--side-margin); }
 
     #pfp-scroller {
       height: 100%; min-height: 0; min-width: 0;
       overflow-x: auto; overflow-y: hidden;
       touch-action: pan-x; scrollbar-width: none;
-      scroll-behavior: smooth; padding: 0 var(--pfp-gutter);
+      scroll-behavior: smooth; padding: 0 var(--side-margin);
     }
     #pfp-scroller::-webkit-scrollbar { display: none; }
     #pfp-grid {
@@ -664,11 +663,11 @@ $('mode-personal').addEventListener('click', () => startMode('personal'));
 /* ═══════════════════════════════════════════════════════════
    PFP grid — fills top→bottom then left→right (grid-auto-flow: column)
    ═══════════════════════════════════════════════════════════ */
-const pfpGutter = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pfp-gutter')) || 40;
+const sideMargin = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--side-margin')) || 20;
 
 function sizePfpCells() {
   const gap = 6;
-  const w = pfpScroller.clientWidth - pfpGutter * 2;   // minus horizontal padding
+  const w = pfpScroller.clientWidth - sideMargin * 2;   // minus horizontal padding
   const h = pfpScroller.clientHeight;
   if (w <= 0 || h <= 0) return;
   const cell = Math.floor(Math.min((w - gap * 4) / 5, (h - gap) / 2));
