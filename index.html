@@ -30,6 +30,7 @@
       --neon:         #39FF14;
       --gap:          6px;
       --side-margin:  20px;   /* every row aligns to this left/right edge */
+      --pfp-gutter:   40px;   /* rows 8-9 only — wide enough to seat a swipe arrow */
     }
 
     *, *::before, *::after {
@@ -51,6 +52,11 @@
       grid-template-rows: repeat(30, 1fr);
       background: #fff;
     }
+    /* Grid items default to min-width:auto (= content's intrinsic width).
+       #pfp-grid can grow arbitrarily wide (width:max-content, N columns),
+       and without this override that width bubbles up and blows out the
+       whole single-column #app grid — not just the PFP row. */
+    #app > * { min-width: 0; }
 
     /* ── Row 1 (top 2/3): title + language ─────────────────── */
     #header {
@@ -128,7 +134,8 @@
       overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
     }
 
-    /* ── Rows 8-9: PFP grid (swipes horizontally when > 10) ── */
+    /* ── Rows 8-9: PFP grid — own 40px side gutter (not --side-margin),
+       sized exactly to seat a swipe arrow with no overlap on the grid ── */
     #pfp-wrap {
       grid-row: 22 / 28; min-height: 0; position: relative;
     }
@@ -140,14 +147,15 @@
       box-shadow: 0 2px 8px rgba(91,63,36,0.16);
     }
     .swipe-arrow.visible { display: flex; }
-    #arrow-left  { left: var(--side-margin); }
-    #arrow-right { right: var(--side-margin); }
+    /* centred inside the 40px gutter: (40px - 26px) / 2 */
+    #arrow-left  { left: 7px; }
+    #arrow-right { right: 7px; }
 
     #pfp-scroller {
-      height: 100%; min-height: 0;
+      height: 100%; min-height: 0; min-width: 0;
       overflow-x: auto; overflow-y: hidden;
       touch-action: pan-x; scrollbar-width: none;
-      scroll-behavior: smooth; padding: 0 var(--side-margin);
+      scroll-behavior: smooth; padding: 0 var(--pfp-gutter);
     }
     #pfp-scroller::-webkit-scrollbar { display: none; }
     #pfp-grid {
@@ -160,8 +168,9 @@
          margin fights the scroller's overflow-x and breaks alignment. */
       height: 100%; align-content: center;
     }
+    .pfp-slot { position: relative; width: var(--cell, 56px); height: var(--cell, 56px); }
     .pfp-cell {
-      width: var(--cell, 56px); height: var(--cell, 56px);
+      width: 100%; height: 100%;
       border-radius: 12px; border: 1.5px solid var(--line);
       background: #fff; padding: 4px; overflow: hidden;
       display: flex; align-items: center; justify-content: center;
@@ -173,7 +182,14 @@
       background: var(--grey-fill); border-color: var(--grey-line);
       cursor: default; pointer-events: none;
     }
-    .pfp-cell.pfp-loading { background: var(--grey-fill); }
+    .pfp-delete-badge {
+      position: absolute; top: -6px; right: -6px; z-index: 2;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #fff; border: 1.5px solid #E24B4B; color: #E24B4B;
+      display: flex; align-items: center; justify-content: center; padding: 0;
+      cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .pfp-delete-badge:active { transform: scale(0.9); }
 
     /* ── Row 10: three equally sized actions ───────────────── */
     #action-row {
@@ -438,6 +454,17 @@
   </div>
 </div>
 
+<!-- Remove custom PFP confirm -->
+<div class="modal" id="modal-remove-pfp">
+  <div class="modal-card">
+    <p class="modal-title" id="remove-pfp-title">Remove this PFP?</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="btn-remove-pfp-cancel">Cancel</button>
+      <button class="btn" id="btn-remove-pfp-confirm" style="background:#E24B4B; color:#fff;">Remove</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 <input type="file" id="file-input" accept="image/*">
 <input type="file" id="pfp-file-input" accept="image/*" multiple>
@@ -477,6 +504,9 @@ const STRINGS = {
     toastAdded:   n => `Added ${n} PFP${n > 1 ? 's' : ''} ✓`,
     toastXFailed: 'Could not load that X avatar',
     toastSaveFailed: 'Added, but could not save for next time (storage full)',
+    removePfpTitle: 'Remove this PFP?',
+    remove:       'Remove',
+    toastRemoved: 'PFP removed',
   },
   vi: {
     titleSeismic:  '<span class="s">Seismic</span> logo &amp; PFP',
@@ -507,6 +537,9 @@ const STRINGS = {
     toastAdded:   n => `Đã thêm ${n} PFP ✓`,
     toastXFailed: 'Không tải được avatar X đó',
     toastSaveFailed: 'Đã thêm nhưng không lưu được cho lần sau (bộ nhớ đầy)',
+    removePfpTitle: 'Xóa PFP này?',
+    remove:       'Xóa',
+    toastRemoved: 'Đã xóa PFP',
   }
 };
 let currentLang = 'en';
@@ -536,6 +569,9 @@ function setLang(lang) {
   $('x-input').placeholder        = s.xPlaceholder;
   $('btn-addpfp-cancel').textContent = s.cancel;
   $('btn-addpfp-add').textContent    = s.add;
+  $('remove-pfp-title').textContent  = s.removePfpTitle;
+  $('btn-remove-pfp-cancel').textContent  = s.cancel;
+  $('btn-remove-pfp-confirm').textContent = s.remove;
   refreshPickButtonLabel();
 }
 $('btn-en').addEventListener('click', () => setLang('en'));
@@ -628,11 +664,11 @@ $('mode-personal').addEventListener('click', () => startMode('personal'));
 /* ═══════════════════════════════════════════════════════════
    PFP grid — fills top→bottom then left→right (grid-auto-flow: column)
    ═══════════════════════════════════════════════════════════ */
-const sideMargin = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--side-margin')) || 20;
+const pfpGutter = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pfp-gutter')) || 40;
 
 function sizePfpCells() {
   const gap = 6;
-  const w = pfpScroller.clientWidth - sideMargin * 2;   // minus horizontal padding
+  const w = pfpScroller.clientWidth - pfpGutter * 2;   // minus horizontal padding
   const h = pfpScroller.clientHeight;
   if (w <= 0 || h <= 0) return;
   const cell = Math.floor(Math.min((w - gap * 4) / 5, (h - gap) / 2));
@@ -644,10 +680,14 @@ function renderPfpGrid() {
   const total = Math.max(PFP_MIN_SLOTS, Math.ceil(pfpList.length / 2) * 2);
   for (let i = 0; i < total; i++) {
     const asset = pfpList[i];
+    const slot = document.createElement('div');
+    slot.className = 'pfp-slot';
+
     if (!asset) {
       const empty = document.createElement('div');
       empty.className = 'pfp-cell pfp-empty';
-      pfpGrid.appendChild(empty);
+      slot.appendChild(empty);
+      pfpGrid.appendChild(slot);
       continue;
     }
     const cell = document.createElement('button');
@@ -668,7 +708,20 @@ function renderPfpGrid() {
     img.src = asset.src;
     cell.appendChild(img);
     cell.addEventListener('click', () => addLogo(asset));
-    pfpGrid.appendChild(cell);
+    slot.appendChild(cell);
+
+    // Only user-added PFPs (not the built-in defaults) can be removed.
+    if (asset.custom) {
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'pfp-delete-badge';
+      del.setAttribute('aria-label', 'Remove');
+      del.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      del.addEventListener('click', e => { e.stopPropagation(); openRemovePfpConfirm(asset); });
+      slot.appendChild(del);
+    }
+
+    pfpGrid.appendChild(slot);
   }
   sizePfpCells();
   updateArrows();
@@ -767,13 +820,13 @@ $('btn-addpfp-add').addEventListener('click', async () => {
     const url = xAvatarUrl(handle);
     try {
       await loadImage(url);                    // verify before adding
-      added.push({ src: url, fallback: null, label: '@' + handle });
+      added.push({ src: url, fallback: null, label: '@' + handle, custom: true });
     } catch (_) {
       showToast(t().toastXFailed); return;
     }
   }
   for (const f of files) {
-    try { added.push({ src: await resizeImageFile(f), fallback: null, label: f.name }); }
+    try { added.push({ src: await resizeImageFile(f), fallback: null, label: f.name, custom: true }); }
     catch (_) { /* skip unreadable file */ }
   }
   if (!added.length) { showToast(t().toastEmptyAdd); return; }
@@ -784,6 +837,34 @@ $('btn-addpfp-add').addEventListener('click', async () => {
   closeAddPfp();
   renderPfpGrid();
   showToast(saved ? t().toastAdded(added.length) : t().toastSaveFailed);
+});
+
+/* ═══════════════════════════════════════════════════════════
+   Remove a custom PFP — confirm popup before deleting
+   ═══════════════════════════════════════════════════════════ */
+const modalRemovePfp = $('modal-remove-pfp');
+let pendingRemoveAsset = null;
+
+function openRemovePfpConfirm(asset) {
+  pendingRemoveAsset = asset;
+  modalRemovePfp.classList.add('visible');
+}
+function closeRemovePfpConfirm() {
+  modalRemovePfp.classList.remove('visible');
+  pendingRemoveAsset = null;
+}
+$('btn-remove-pfp-cancel').addEventListener('click', closeRemovePfpConfirm);
+modalRemovePfp.addEventListener('click', e => { if (e.target === modalRemovePfp) closeRemovePfpConfirm(); });
+
+$('btn-remove-pfp-confirm').addEventListener('click', () => {
+  const asset = pendingRemoveAsset;
+  if (!asset) return;
+  pfpList    = pfpList.filter(a => a !== asset);
+  customPfps = customPfps.filter(a => a !== asset);
+  saveCustomPfps(currentMode);
+  closeRemovePfpConfirm();
+  renderPfpGrid();
+  showToast(t().toastRemoved);
 });
 
 /* ═══════════════════════════════════════════════════════════
@@ -1167,6 +1248,7 @@ imageArea.addEventListener('wheel', e => {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
+    if (modalRemovePfp.classList.contains('visible')) { closeRemovePfpConfirm(); return; }
     if (modalAddPfp.classList.contains('visible')) { closeAddPfp(); return; }
     blurText();
   }
