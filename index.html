@@ -182,11 +182,13 @@
       cursor: default; pointer-events: none;
     }
     .pfp-delete-badge {
-      position: absolute; top: -6px; right: -6px; z-index: 2;
-      width: 20px; height: 20px; border-radius: 50%;
+      /* Inset (not poking outside the slot) — #pfp-scroller clips
+         overflow-y, so anything hanging above the top-row cells gets cut off. */
+      position: absolute; top: 2px; right: 2px; z-index: 2;
+      width: 16px; height: 16px; border-radius: 50%;
       background: #fff; border: 1.5px solid #E24B4B; color: #E24B4B;
       display: flex; align-items: center; justify-content: center; padding: 0;
-      cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.3);
     }
     .pfp-delete-badge:active { transform: scale(0.9); }
 
@@ -490,7 +492,7 @@ const STRINGS = {
     modePersonal: 'Personal PFP and logo',
     modePersonalDesc: 'Start empty and add your own',
     addPfpTitle:  'Add more PFP',
-    xPlaceholder: 'X link/handle — space for more',
+    xPlaceholder: 'X link/handle – space for more than 2',
     pickImages:   'Pick images from gallery',
     pickedN:      n => `${n} image${n > 1 ? 's' : ''} selected`,
     cancel:       'Cancel',
@@ -715,7 +717,7 @@ function renderPfpGrid() {
       del.type = 'button';
       del.className = 'pfp-delete-badge';
       del.setAttribute('aria-label', 'Remove');
-      del.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      del.innerHTML = '<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
       del.addEventListener('click', e => { e.stopPropagation(); openRemovePfpConfirm(asset); });
       slot.appendChild(del);
     }
