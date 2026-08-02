@@ -209,13 +209,13 @@
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E24B4B' stroke-width='3' stroke-linecap='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E");
     }
 
-    /* ── Text colour toolbar ───────────────────────────────── */
+    /* ── Text colour toolbar — anchored just below the text box ── */
     #text-toolbar {
-      display: none; position: fixed; left: 0; right: 0; bottom: 0;
-      padding: 6px 0; align-items: center; justify-content: center;
+      display: none; position: fixed; left: 0; top: 0;
+      transform: translateX(-50%);
       z-index: 500; pointer-events: none;
     }
-    #text-toolbar.visible { display: flex; }
+    #text-toolbar.visible { display: block; }
     #scheme-switch {
       display: flex; gap: 2px; background: #F3EFEA; border-radius: 9px; padding: 3px;
       box-shadow: 0 2px 12px rgba(91,63,36,0.22); pointer-events: all;
@@ -850,6 +850,7 @@ function addText() {
     refreshTextToolbar();
   });
   display.addEventListener('focus', () => { placeItem(item); refreshTextToolbar(); });
+  display.addEventListener('input', () => { if (activeItem === item) positionTextToolbar(); });
 
   let mouseMoved = false;
   el.addEventListener('pointerdown', e => {
@@ -1000,6 +1001,8 @@ function placeItem(item) {
     el.style.top             = (canvasT + item.y) + 'px';
     el.style.transform       = `translateX(-50%) rotate(${item.rotation}deg) scale(${item.scale})`;
     el.style.transformOrigin = '50% 0';
+
+    if (item === activeItem && textToolbar.classList.contains('visible')) positionTextToolbar();
   }
 }
 
@@ -1019,9 +1022,21 @@ function refreshTextToolbar() {
   positionTextToolbar();
 }
 function positionTextToolbar() {
+  const item = activeItem && activeItem.type === 'text' ? activeItem : null;
+  if (!item) return;
+  const display = item.el.querySelector('.text-display');
+  const rect = display.getBoundingClientRect();
+  const gap = 8;
+  const toolbarH = textToolbar.offsetHeight || 40;
   const vv = window.visualViewport;
-  const kb = vv ? Math.round(window.innerHeight - vv.height - vv.offsetTop) : 0;
-  textToolbar.style.bottom = (kb > 80 ? kb : 0) + 'px';
+  const viewportBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+
+  // Anchor below the text box; flip above it if the keyboard/viewport leaves no room.
+  let top = rect.bottom + gap;
+  if (top + toolbarH > viewportBottom) top = Math.max(8, rect.top - gap - toolbarH);
+
+  textToolbar.style.left = Math.round(rect.left + rect.width / 2) + 'px';
+  textToolbar.style.top  = Math.round(top) + 'px';
 }
 function applyScheme(scheme) {
   if (!activeItem || activeItem.type !== 'text') return;
