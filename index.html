@@ -490,7 +490,7 @@ const STRINGS = {
     modePersonal: 'Personal PFP and logo',
     modePersonalDesc: 'Start empty and add your own',
     addPfpTitle:  'Add more PFP',
-    xPlaceholder: 'Paste an X link or handle…',
+    xPlaceholder: 'Paste an X link or handle, use space to add more than 2',
     pickImages:   'Pick images from gallery',
     pickedN:      n => `${n} image${n > 1 ? 's' : ''} selected`,
     cancel:       'Cancel',
@@ -523,7 +523,7 @@ const STRINGS = {
     modePersonal: 'Personal PFP and logo',
     modePersonalDesc: 'Custom theo sở thích của bạn',
     addPfpTitle:  'Thêm PFP',
-    xPlaceholder: 'Nhập link X hoặc handle…',
+    xPlaceholder: 'Dán link X hoặc handle, cách nhau bằng dấu cách để thêm nhiều',
     pickImages:   'Nhập ảnh từ kho ảnh',
     pickedN:      n => `Đã chọn ${n} ảnh`,
     cancel:       'Hủy',
@@ -813,22 +813,27 @@ $('btn-addpfp-add').addEventListener('click', async () => {
   if (!raw && !files.length) { showToast(t().toastEmptyAdd); return; }
 
   const added = [];
+  let anyHandleFailed = false;
   if (raw) {
-    const handle = parseXHandle(raw);
-    if (!handle) { showToast(t().toastBadHandle); return; }
-    const url = xAvatarUrl(handle);
-    try {
-      await loadImage(url);                    // verify before adding
-      added.push({ src: url, fallback: null, label: '@' + handle, custom: true });
-    } catch (_) {
-      showToast(t().toastXFailed); return;
+    // Space-separated → each token is its own handle: "@lecter @bescient"
+    const tokens = raw.split(/\s+/).filter(Boolean);
+    for (const token of tokens) {
+      const handle = parseXHandle(token);
+      if (!handle) { anyHandleFailed = true; continue; }
+      const url = xAvatarUrl(handle);
+      try {
+        await loadImage(url);                    // verify before adding
+        added.push({ src: url, fallback: null, label: '@' + handle, custom: true });
+      } catch (_) {
+        anyHandleFailed = true;
+      }
     }
   }
   for (const f of files) {
     try { added.push({ src: await resizeImageFile(f), fallback: null, label: f.name, custom: true }); }
     catch (_) { /* skip unreadable file */ }
   }
-  if (!added.length) { showToast(t().toastEmptyAdd); return; }
+  if (!added.length) { showToast(anyHandleFailed ? t().toastBadHandle : t().toastEmptyAdd); return; }
 
   pfpList    = pfpList.concat(added);
   customPfps = customPfps.concat(added);
