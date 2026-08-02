@@ -108,8 +108,25 @@
       display: flex; flex-direction: column; align-items: center; gap: 12px;
       color: var(--brown-faint); pointer-events: none; padding: 0 20px; text-align: center;
     }
-    #image-placeholder svg { width: 58px; height: 58px; }
+    #image-placeholder .icon-mask { width: 58px; height: 58px; }
     #image-placeholder p   { font-size: 15px; }
+
+    /* ── Icons — masked from the logos/*.svg files so colour still follows
+       currentColor (each button's own text colour) like the inline SVGs did. ── */
+    .icon-mask {
+      display: inline-block; flex: none;
+      -webkit-mask-size: contain; mask-size: contain;
+      -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+      -webkit-mask-position: center; mask-position: center;
+      background-color: currentColor;
+    }
+    .icon-add      { -webkit-mask-image: url('logos/add.svg');      mask-image: url('logos/add.svg'); }
+    .icon-text     { -webkit-mask-image: url('logos/text.svg');     mask-image: url('logos/text.svg'); }
+    .icon-download { -webkit-mask-image: url('logos/download.svg'); mask-image: url('logos/download.svg'); }
+    .icon-image    { -webkit-mask-image: url('logos/image.svg');    mask-image: url('logos/image.svg'); }
+    .icon-x        { -webkit-mask-image: url('logos/x.svg');        mask-image: url('logos/x.svg'); }
+    .icon-camera   { -webkit-mask-image: url('logos/camera.svg');   mask-image: url('logos/camera.svg'); }
+    .icon-check    { -webkit-mask-image: url('logos/check.svg');    mask-image: url('logos/check.svg'); }
     #tap-layer    { position: absolute; inset: 0; z-index: 1; cursor: pointer; }
     #photo-canvas { position: absolute; display: none; z-index: 2; }
 
@@ -133,6 +150,8 @@
       white-space: pre-line;   /* the \n in the string is an intentional line break */
       transform: translateY(5px);
     }
+    #gesture-hint .icon-mask { width: 13px; height: 13px; vertical-align: -2px; margin-right: 4px; }
+    #gesture-hint.alert { color: var(--brown-soft); font-weight: 600; }
 
     /* ── Rows 8-9: PFP grid — same 20px --side-margin as every other row;
        swipe arrows float over the edge PFPs rather than getting their
@@ -208,6 +227,7 @@
       cursor: pointer; display: flex; align-items: center; justify-content: center;
       gap: 4px; transition: opacity 0.15s, transform 0.1s; white-space: nowrap; padding: 0 4px;
     }
+    .btn .icon-mask, #btn-clear-photo .icon-mask { width: 13px; height: 13px; }
     .btn:active:not(:disabled) { opacity: 0.82; transform: scale(0.97); }
     .btn:disabled { opacity: 0.35; cursor: not-allowed; }
     .btn svg { flex-shrink: 0; }
@@ -220,7 +240,7 @@
     }
     .overlay-item:active { cursor: grabbing; }
     .overlay-item.item-active { box-shadow: 0 0 0 3px var(--neon); border-radius: 3px; }
-    .logo-item img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; display: block; }
+    .logo-item .logo-main { width: 100%; height: 100%; object-fit: contain; pointer-events: none; display: block; }
 
     .text-item { display: inline-block; }
     .text-display {
@@ -250,7 +270,16 @@
     }
     .delete-handle {
       top: -13px; right: -13px; cursor: pointer; border-color: #E24B4B;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E24B4B' stroke-width='3' stroke-linecap='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E");
+    }
+    /* Layered as a pseudo-element (not background-image) because .item-handle's white circle
+       background must stay underneath the X, and mask-image would otherwise clip it away too. */
+    .delete-handle::after {
+      content: ''; position: absolute; inset: 6.5px;
+      -webkit-mask-image: url('logos/x.svg'); mask-image: url('logos/x.svg');
+      -webkit-mask-size: contain; mask-size: contain;
+      -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+      -webkit-mask-position: center; mask-position: center;
+      background-color: #E24B4B;
     }
 
     /* ── Text colour toolbar — anchored just below the text box ── */
@@ -329,8 +358,10 @@
       border-radius: 22px; font-size: 13px; font-weight: 500;
       transition: transform 0.28s cubic-bezier(.25,.8,.25,1);
       z-index: 900; max-width: 86vw; text-align: center; pointer-events: none;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
     }
     #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast .icon-mask { width: 13px; height: 13px; }
     input[type=file] { display: none; }
 
     /* ── Desktop: phone-shaped column ──────────────────────── */
@@ -363,19 +394,13 @@
   <!-- Rows 1(bottom)–7(top): photo -->
   <section id="image-area">
     <div id="image-placeholder">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
-        <rect x="3" y="3" width="18" height="18" rx="2.5" ry="2.5"/>
-        <circle cx="8.5" cy="8.5" r="1.5"/>
-        <polyline points="21 15 16 10 5 21"/>
-      </svg>
+      <span class="icon-mask icon-image"></span>
       <p id="placeholder-text">Tap to choose a photo</p>
     </div>
     <div id="tap-layer"></div>
     <canvas id="photo-canvas"></canvas>
     <button id="btn-clear-photo" title="Change photo">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-      </svg>
+      <span class="icon-mask icon-x"></span>
     </button>
   </section>
 
@@ -401,22 +426,15 @@
   <!-- Row 10 -->
   <div id="action-row">
     <button class="btn btn-outline" id="btn-addpfp">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
+      <span class="icon-mask icon-add"></span>
       <span id="lbl-addpfp">Add more PFP</span>
     </button>
     <button class="btn btn-outline" id="btn-addtext">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-        <path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>
-      </svg>
+      <span class="icon-mask icon-text"></span>
       <span id="lbl-addtext">Add text</span>
     </button>
     <button class="btn btn-solid" id="btn-save" disabled>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-        <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-      </svg>
+      <span class="icon-mask icon-download"></span>
       <span id="lbl-save">Save image</span>
     </button>
   </div>
@@ -470,6 +488,17 @@
   </div>
 </div>
 
+<!-- Delete a placed overlay item (logo/PFP or text) confirm -->
+<div class="modal" id="modal-delete-item">
+  <div class="modal-card">
+    <p class="modal-title" id="delete-item-title">Delete this?</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="btn-delete-item-cancel">Cancel</button>
+      <button class="btn" id="btn-delete-item-confirm" style="background:#E24B4B; color:#fff;">Delete</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 <input type="file" id="file-input" accept="image/*">
 <input type="file" id="pfp-file-input" accept="image/*" multiple>
@@ -486,7 +515,7 @@ const STRINGS = {
     shortSeismic:  'Seismic',
     shortPersonal: 'Personal',
     placeholder:  'Tap to choose a photo',
-    hint:         'Choose a photo, pick a PFP, drag anywhere to move\n– 2 fingers to zoom & rotate – X to delete',
+    hint:         'Pick a PFP, drag anywhere to move, 2 fingers to zoom & rotate, X to delete',
     addPfp:       'Add more PFP',
     addText:      'Add text',
     saveImage:    'Save image',
@@ -501,15 +530,17 @@ const STRINGS = {
     pickedN:      n => `${n} image${n > 1 ? 's' : ''} selected`,
     cancel:       'Cancel',
     add:          'Add',
-    toastNoPhoto: 'Please choose a photo first 📸',
-    toastSaved:   'Photo saved to library ✓',
-    toastDown:    'Photo downloaded ✓',
+    toastNoPhoto: 'Please choose a photo first',
+    toastSaved:   'Photo saved to library',
+    toastDown:    'Photo downloaded',
     toastEmptyAdd:'Enter an X handle or pick some images first',
     toastBadHandle:'That does not look like an X link or handle',
     toastSaveFailed: 'Added, but could not save for next time (storage full)',
     removePfpTitle: 'Remove this PFP?',
     remove:       'Remove',
     toastRemoved: 'PFP removed',
+    deleteItemTitle: 'Delete this?',
+    deleteAction: 'Delete',
   },
   vi: {
     titleSeismic:  '<span class="s">Seismic</span> logo &amp; PFP',
@@ -517,7 +548,7 @@ const STRINGS = {
     shortSeismic:  'Seismic',
     shortPersonal: 'Personal',
     placeholder:  'Nhấn để chọn ảnh',
-    hint:         'Chọn ảnh, chọn PFP, kéo bất cứ đâu để di chuyển\n– 2 ngón để zoom & xoay – X để xóa',
+    hint:         'Chọn PFP, kéo bất cứ đâu để di chuyển, 2 ngón để zoom & xoay, X để xóa',
     addPfp:       'Thêm PFP',
     addText:      'Thêm chữ',
     saveImage:    'Lưu ảnh',
@@ -532,15 +563,17 @@ const STRINGS = {
     pickedN:      n => `Đã chọn ${n} ảnh`,
     cancel:       'Hủy',
     add:          'Thêm',
-    toastNoPhoto: 'Hãy chọn ảnh trước nhé 📸',
-    toastSaved:   'Ảnh đã được lưu vào thư viện ✓',
-    toastDown:    'Ảnh đã được tải xuống ✓',
+    toastNoPhoto: 'Hãy chọn ảnh trước nhé',
+    toastSaved:   'Ảnh đã được lưu vào thư viện',
+    toastDown:    'Ảnh đã được tải xuống',
     toastEmptyAdd:'Nhập handle X hoặc chọn ảnh trước đã',
     toastBadHandle:'Đây không giống link X hoặc handle',
     toastSaveFailed: 'Đã thêm nhưng không lưu được cho lần sau (bộ nhớ đầy)',
     removePfpTitle: 'Xóa PFP này?',
     remove:       'Xóa',
     toastRemoved: 'Đã xóa PFP',
+    deleteItemTitle: 'Xóa cái này?',
+    deleteAction: 'Xóa',
   }
 };
 let currentLang = 'en';
@@ -573,6 +606,9 @@ function setLang(lang) {
   $('remove-pfp-title').textContent  = s.removePfpTitle;
   $('btn-remove-pfp-cancel').textContent  = s.cancel;
   $('btn-remove-pfp-confirm').textContent = s.remove;
+  $('delete-item-title').textContent  = s.deleteItemTitle;
+  $('btn-delete-item-cancel').textContent  = s.cancel;
+  $('btn-delete-item-confirm').textContent = s.deleteAction;
   refreshPickButtonLabel();
 }
 $('btn-en').addEventListener('click', () => setLang('en'));
@@ -701,12 +737,10 @@ function renderPfpGrid() {
     img.addEventListener('error', () => {
       if (asset.fallback && img.src !== asset.fallback) {
         asset.src = asset.fallback;
-        img.crossOrigin = 'anonymous';
-        img.src = asset.fallback;
+        getStrokedImage(asset.src).then(c => { img.src = c.toDataURL('image/png'); }).catch(() => { img.src = asset.fallback; });
       }
     });
-    if (/^https?:/i.test(asset.src)) img.crossOrigin = 'anonymous';
-    img.src = asset.src;
+    getStrokedImage(asset.src).then(c => { img.src = c.toDataURL('image/png'); }).catch(() => { img.src = asset.src; });
     cell.appendChild(img);
     cell.addEventListener('click', () => addLogo(asset));
     slot.appendChild(cell);
@@ -717,7 +751,7 @@ function renderPfpGrid() {
       del.type = 'button';
       del.className = 'pfp-delete-badge';
       del.setAttribute('aria-label', 'Remove');
-      del.innerHTML = '<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      del.innerHTML = '<span class="icon-mask icon-x" style="width:8px;height:8px"></span>';
       del.addEventListener('click', e => { e.stopPropagation(); openRemovePfpConfirm(asset); });
       slot.appendChild(del);
     }
@@ -890,6 +924,69 @@ function loadImage(src) {
   return p;
 }
 
+/* ── White stroke around every PFP/logo, baked once per asset into a cached raster
+   (`getStrokedImage()`) that's reused as-is for the picker grid, the placed overlay, and the
+   export canvas — so the three are always pixel-identical and the stroke scales naturally with
+   zoom, same as the art itself.
+   Every source image is first resampled onto a common PFP_STROKE_REF-px reference canvas
+   (preserving aspect ratio) before the stroke is drawn — without this, stroke thickness would
+   be tied to each asset's own native resolution (400px logos vs. the 1024px Lyron PFP vs. an
+   arbitrary custom upload), which is what made the very first version of this feature look
+   wildly inconsistent from one PFP to another. ── */
+const PFP_STROKE_REF = 400; // reference canvas (longest side, px) every asset is normalized to
+const PFP_STROKE_PX  = 15;  // stroke width in that reference space
+const strokedImgCache = new Map();
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y,     x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x,     y + h, r);
+  ctx.arcTo(x,     y + h, x,     y,     r);
+  ctx.arcTo(x,     y,     x + w, y,     r);
+  ctx.closePath();
+}
+
+function buildStrokedCanvas(img, steps = 24) {
+  const refScale = PFP_STROKE_REF / Math.max(img.naturalWidth, img.naturalHeight);
+  const w = Math.round(img.naturalWidth  * refScale);
+  const h = Math.round(img.naturalHeight * refScale);
+  const pad = PFP_STROKE_PX;
+  const radius = Math.min(w, h) * 0.14;
+
+  const silhouette = document.createElement('canvas');
+  silhouette.width = w; silhouette.height = h;
+  const sctx = silhouette.getContext('2d');
+  roundRectPath(sctx, 0, 0, w, h, radius);
+  sctx.clip();
+  sctx.drawImage(img, 0, 0, w, h);
+  sctx.globalCompositeOperation = 'source-in';
+  sctx.fillStyle = '#fff';
+  sctx.fillRect(0, 0, w, h);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w + pad * 2;
+  canvas.height = h + pad * 2;
+  const ctx = canvas.getContext('2d');
+  for (let i = 0; i < steps; i++) {
+    const angle = (i / steps) * Math.PI * 2;
+    ctx.drawImage(silhouette, pad + Math.cos(angle) * PFP_STROKE_PX, pad + Math.sin(angle) * PFP_STROKE_PX);
+  }
+  ctx.save();
+  roundRectPath(ctx, pad, pad, w, h, radius);
+  ctx.clip();
+  ctx.drawImage(img, pad, pad, w, h);
+  ctx.restore();
+  return canvas;
+}
+
+function getStrokedImage(src) {
+  if (strokedImgCache.has(src)) return strokedImgCache.get(src);
+  const p = loadImage(src).then(img => buildStrokedCanvas(img));
+  strokedImgCache.set(src, p);
+  return p;
+}
+
 /* ═══════════════════════════════════════════════════════════
    Background photo
    ═══════════════════════════════════════════════════════════ */
@@ -919,6 +1016,7 @@ fileInput.addEventListener('change', function () {
 
 btnClearPhoto.addEventListener('click', () => {
   photoNaturalImg = null;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
   photoCanvas.style.display = 'none';
   placeholder.style.display = '';
@@ -941,11 +1039,16 @@ function drawPhoto() {
   let cW, cH;
   if (ratio > aW / aH) { cW = aW; cH = aW / ratio; }
   else                 { cH = aH; cW = aH * ratio; }
-  photoCanvas.width  = cW; photoCanvas.height = cH;
+  // Backing store sized in *device* px (cW/cH * devicePixelRatio), CSS size stays cW/cH —
+  // otherwise the canvas is upscaled by the browser and the photo looks soft/blurry on any
+  // high-DPI screen (most phones, and many Windows displays at 125%/150% scaling).
+  const dpr = window.devicePixelRatio || 1;
+  photoCanvas.width  = cW * dpr; photoCanvas.height = cH * dpr;
   photoCanvas.style.width  = cW + 'px';
   photoCanvas.style.height = cH + 'px';
   photoCanvas.style.left   = ((aW - cW) / 2) + 'px';
   photoCanvas.style.top    = ((aH - cH) / 2) + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.drawImage(photoNaturalImg, 0, 0, cW, cH);
 }
 
@@ -962,7 +1065,7 @@ function blurText() {
    Overlay items — logo / PFP
    ═══════════════════════════════════════════════════════════ */
 function addLogo(asset) {
-  if (!photoNaturalImg) { showToast(t().toastNoPhoto); return; }
+  if (!photoNaturalImg) { showHintNotice(t().toastNoPhoto, 'icon-camera'); return; }
   if (isTyping()) blurText();
   const cW = photoCanvas.clientWidth, cH = photoCanvas.clientHeight;
   const item = {
@@ -973,9 +1076,11 @@ function addLogo(asset) {
   };
   const el = document.createElement('div');
   el.className = 'overlay-item logo-item';
+
   const img = document.createElement('img');
-  if (/^https?:/i.test(asset.src)) img.crossOrigin = 'anonymous';
-  img.src = asset.src; img.alt = 'logo'; img.draggable = false;
+  img.className = 'logo-main';
+  img.alt = 'logo'; img.draggable = false;
+  getStrokedImage(asset.src).then(c => { img.src = c.toDataURL('image/png'); }).catch(() => { img.src = asset.src; });
   el.appendChild(img);
   attachHandles(el, item);
   imageArea.appendChild(el);
@@ -993,14 +1098,13 @@ function addLogo(asset) {
   overlayItems.push(item);
   setActive(item);
   placeItem(item);
-  loadImage(asset.src).catch(() => {});   // warm the cache for export
 }
 
 /* ═══════════════════════════════════════════════════════════
    Overlay items — text
    ═══════════════════════════════════════════════════════════ */
 function addText() {
-  if (!photoNaturalImg) { showToast(t().toastNoPhoto); return; }
+  if (!photoNaturalImg) { showHintNotice(t().toastNoPhoto, 'icon-camera'); return; }
   if (isTyping()) blurText();
   const cW = photoCanvas.clientWidth, cH = photoCanvas.clientHeight;
   const item = {
@@ -1125,7 +1229,7 @@ function makeRotateHandle(item) {
 function makeDeleteHandle(item) {
   const handle = document.createElement('div');
   handle.className = 'item-handle delete-handle';
-  const kill = e => { e.stopPropagation(); e.preventDefault(); deleteItem(item); };
+  const kill = e => { e.stopPropagation(); e.preventDefault(); openDeleteItemConfirm(item); };
   handle.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); });
   handle.addEventListener('click', kill);
   handle.addEventListener('touchend', kill, { passive: false });
@@ -1142,6 +1246,28 @@ function deleteItem(item) {
     if (last) setActive(last); else refreshTextToolbar();
   }
 }
+
+/* Delete (X on a placed logo/PFP or text item) — confirm popup before deleting */
+const modalDeleteItem = $('modal-delete-item');
+let pendingDeleteItem = null;
+
+function openDeleteItemConfirm(item) {
+  pendingDeleteItem = item;
+  modalDeleteItem.classList.add('visible');
+}
+function closeDeleteItemConfirm() {
+  modalDeleteItem.classList.remove('visible');
+  pendingDeleteItem = null;
+}
+$('btn-delete-item-cancel').addEventListener('click', closeDeleteItemConfirm);
+modalDeleteItem.addEventListener('click', e => { if (e.target === modalDeleteItem) closeDeleteItemConfirm(); });
+
+$('btn-delete-item-confirm').addEventListener('click', () => {
+  const item = pendingDeleteItem;
+  if (!item) return;
+  closeDeleteItemConfirm();
+  deleteItem(item);
+});
 
 function setActive(item) {
   if (activeItem) activeItem.el.classList.remove('item-active');
@@ -1492,15 +1618,18 @@ btnSave.addEventListener('click', async () => {
     octx.rotate(item.rotation * Math.PI / 180);
 
     if (item.type === 'logo') {
-      let lImg = null;
-      try { lImg = await loadImage(item.src); } catch (_) {}
-      if (lImg) {
+      // Same cached stroked-and-normalized asset used on screen (getStrokedImage), so the
+      // export is pixel-identical to the preview and the stroke scales with item.scale exactly
+      // like it did there — no separate export-time stroke math to keep in sync.
+      let sImg = null;
+      try { sImg = await getStrokedImage(item.src); } catch (_) {}
+      if (sImg) {
         const natSz  = item.baseSize * item.scale * sx;
-        const aspect = lImg.naturalWidth / lImg.naturalHeight;
+        const aspect = sImg.width / sImg.height;
         let drawW, drawH;
         if (aspect >= 1) { drawW = natSz; drawH = natSz / aspect; }
         else             { drawH = natSz; drawW = natSz * aspect; }
-        octx.drawImage(lImg, -drawW / 2, -drawH / 2, drawW, drawH);
+        octx.drawImage(sImg, -drawW / 2, -drawH / 2, drawW, drawH);
       }
 
     } else if (item.type === 'text') {
@@ -1536,7 +1665,7 @@ btnSave.addEventListener('click', async () => {
     if (!isDesktop && navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({ files: [file], title: 'SeismicLogo' });
-        showToast(t().toastSaved);
+        showToast(t().toastSaved, 'icon-check');
         btnSave.disabled = false; return;
       } catch (err) {
         if (err.name === 'AbortError') { btnSave.disabled = false; return; }
@@ -1548,7 +1677,7 @@ btnSave.addEventListener('click', async () => {
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 3000);
-    showToast(t().toastDown);
+    showToast(t().toastDown, 'icon-check');
     btnSave.disabled = false;
   }, 'image/jpeg', 0.95);
 });
@@ -1557,12 +1686,27 @@ btnSave.addEventListener('click', async () => {
    Toast + resize
    ═══════════════════════════════════════════════════════════ */
 let toastTimer;
-function showToast(msg) {
+function showToast(msg, iconClass) {
   clearTimeout(toastTimer);
   const el = $('toast');
-  el.textContent = msg;
+  el.innerHTML = iconClass ? `<span class="icon-mask ${iconClass}"></span>${msg}` : '';
+  if (!iconClass) el.textContent = msg;
   el.classList.add('show');
   toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+/* "Please choose a photo first" etc. — shown inline in the caption/hint strip
+   (not as a toast) so it doesn't compete with other popups for attention. */
+let hintNoticeTimer;
+function showHintNotice(msg, iconClass) {
+  clearTimeout(hintNoticeTimer);
+  const el = $('gesture-hint');
+  el.innerHTML = `<span class="icon-mask ${iconClass}"></span>${msg}`;
+  el.classList.add('alert');
+  hintNoticeTimer = setTimeout(() => {
+    el.textContent = t().hint;
+    el.classList.remove('alert');
+  }, 2400);
 }
 
 window.addEventListener('resize', () => {
