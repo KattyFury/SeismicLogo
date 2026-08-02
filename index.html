@@ -131,7 +131,10 @@
     #photo-canvas { position: absolute; display: none; z-index: 2; }
 
     #btn-clear-photo {
-      display: none; position: absolute; top: 8px; right: 8px; z-index: 5;
+      /* Above .item-handle's z-index:20 — otherwise a PFP dragged near the
+         top-right corner puts its rotate/delete handle on top of this
+         button and eats the click, blocking clearing the photo. */
+      display: none; position: absolute; top: 8px; right: 8px; z-index: 25;
       width: 30px; height: 30px; border-radius: 50%;
       background: rgba(0,0,0,0.42); border: none; cursor: pointer;
       align-items: center; justify-content: center; color: #fff;
@@ -350,18 +353,6 @@
     .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .modal-actions .btn { height: 42px; max-height: 42px; font-size: 13px; }
 
-    /* ── Toast ─────────────────────────────────────────────── */
-    #toast {
-      position: fixed; bottom: 26px; left: 50%;
-      transform: translateX(-50%) translateY(96px);
-      background: rgba(40,26,14,0.9); color: #fff; padding: 10px 20px;
-      border-radius: 22px; font-size: 13px; font-weight: 500;
-      transition: transform 0.28s cubic-bezier(.25,.8,.25,1);
-      z-index: 900; max-width: 86vw; text-align: center; pointer-events: none;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-    }
-    #toast.show { transform: translateX(-50%) translateY(0); }
-    #toast .icon-mask { width: 13px; height: 13px; }
     input[type=file] { display: none; }
 
     /* ── Desktop: phone-shaped column ──────────────────────── */
@@ -499,7 +490,6 @@
   </div>
 </div>
 
-<div id="toast"></div>
 <input type="file" id="file-input" accept="image/*">
 <input type="file" id="pfp-file-input" accept="image/*" multiple>
 
@@ -846,7 +836,7 @@ function resizeImageFile(file, maxDim = 400, quality = 0.85) {
 $('btn-addpfp-add').addEventListener('click', async () => {
   const raw    = xInput.value.trim();
   const files  = pickedFiles.slice();
-  if (!raw && !files.length) { showToast(t().toastEmptyAdd); return; }
+  if (!raw && !files.length) { showHintNotice(t().toastEmptyAdd); return; }
 
   const added = [];
   let anyHandleFailed = false;
@@ -869,14 +859,14 @@ $('btn-addpfp-add').addEventListener('click', async () => {
     try { added.push({ src: await resizeImageFile(f), fallback: null, label: f.name, custom: true }); }
     catch (_) { /* skip unreadable file */ }
   }
-  if (!added.length) { showToast(anyHandleFailed ? t().toastBadHandle : t().toastEmptyAdd); return; }
+  if (!added.length) { showHintNotice(anyHandleFailed ? t().toastBadHandle : t().toastEmptyAdd); return; }
 
   pfpList    = pfpList.concat(added);
   customPfps = customPfps.concat(added);
   const saved = saveCustomPfps(currentMode);
   closeAddPfp();
   renderPfpGrid();
-  if (!saved) showToast(t().toastSaveFailed);   // the new PFPs already show up in the grid — no need to also toast success
+  if (!saved) showHintNotice(t().toastSaveFailed);   // the new PFPs already show up in the grid — no need to also notify success
 });
 
 /* ═══════════════════════════════════════════════════════════
@@ -904,7 +894,7 @@ $('btn-remove-pfp-confirm').addEventListener('click', () => {
   saveCustomPfps(currentMode);
   closeRemovePfpConfirm();
   renderPfpGrid();
-  showToast(t().toastRemoved);
+  showHintNotice(t().toastRemoved, 'icon-check');
 });
 
 /* ═══════════════════════════════════════════════════════════
@@ -1665,7 +1655,7 @@ btnSave.addEventListener('click', async () => {
     if (!isDesktop && navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({ files: [file], title: 'SeismicLogo' });
-        showToast(t().toastSaved, 'icon-check');
+        showHintNotice(t().toastSaved, 'icon-check');
         btnSave.disabled = false; return;
       } catch (err) {
         if (err.name === 'AbortError') { btnSave.disabled = false; return; }
@@ -1677,36 +1667,25 @@ btnSave.addEventListener('click', async () => {
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 3000);
-    showToast(t().toastDown, 'icon-check');
+    showHintNotice(t().toastDown, 'icon-check');
     btnSave.disabled = false;
   }, 'image/jpeg', 0.95);
 });
 
 /* ═══════════════════════════════════════════════════════════
-   Toast + resize
+   Notifications — shown inline in the caption/hint strip (not a
+   floating toast) so they don't sit off in a corner unnoticed.
    ═══════════════════════════════════════════════════════════ */
-let toastTimer;
-function showToast(msg, iconClass) {
-  clearTimeout(toastTimer);
-  const el = $('toast');
-  el.innerHTML = iconClass ? `<span class="icon-mask ${iconClass}"></span>${msg}` : '';
-  if (!iconClass) el.textContent = msg;
-  el.classList.add('show');
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
-}
-
-/* "Please choose a photo first" etc. — shown inline in the caption/hint strip
-   (not as a toast) so it doesn't compete with other popups for attention. */
 let hintNoticeTimer;
 function showHintNotice(msg, iconClass) {
   clearTimeout(hintNoticeTimer);
   const el = $('gesture-hint');
-  el.innerHTML = `<span class="icon-mask ${iconClass}"></span>${msg}`;
+  el.innerHTML = iconClass ? `<span class="icon-mask ${iconClass}"></span>${msg}` : msg;
   el.classList.add('alert');
   hintNoticeTimer = setTimeout(() => {
     el.textContent = t().hint;
     el.classList.remove('alert');
-  }, 2400);
+  }, 5000);
 }
 
 window.addEventListener('resize', () => {
