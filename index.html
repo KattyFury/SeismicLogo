@@ -29,6 +29,7 @@
       --grey-line:    #E4DFD8;
       --neon:         #39FF14;
       --gap:          6px;
+      --side-margin:  20px;   /* every row aligns to this left/right edge */
     }
 
     *, *::before, *::after {
@@ -55,11 +56,11 @@
     #header {
       grid-row: 1 / 3;
       display: grid; grid-template-columns: 2fr 1fr;
-      align-items: center; padding: 0 12px; min-height: 0;
+      align-items: center; padding: 0 var(--side-margin); min-height: 0;
     }
     #app-title {
       font-family: 'Roboto Condensed', sans-serif;
-      font-weight: 700; letter-spacing: 0.2px; text-align: center;
+      font-weight: 700; letter-spacing: 0.2px; text-align: left;
       font-size: clamp(15px, 4.4vw, 21px); line-height: 1.1;
       color: var(--brown); white-space: nowrap;
       overflow: hidden; text-overflow: ellipsis;
@@ -74,11 +75,11 @@
     }
     .lang-btn.lang-active { background: var(--brown-soft); border-color: var(--brown-soft); color: #fff; }
 
-    /* ── Row 1 (bottom 1/3) → row 7 (top 2/3): photo ───────── */
+    /* ── Row 1 (bottom 1/3) → row 7 (first 1/3): photo ─────── */
     #image-area {
-      grid-row: 3 / 21; min-height: 0;
+      grid-row: 3 / 20; min-height: 0;
       position: relative; overflow: hidden;
-      margin: 0 10px; border-radius: 14px;
+      margin: 0 var(--side-margin); border-radius: 14px;
       background: var(--grey-fill);
       display: flex; align-items: center; justify-content: center;
     }
@@ -99,33 +100,38 @@
     }
     #btn-clear-photo.visible { display: flex; }
 
-    /* ── Row 7 (bottom 1/3): hint + swipe arrows ───────────── */
+    /* ── Row 7 (last 2/3): caption ──────────────────────────── */
     #hint-strip {
-      grid-row: 21 / 22; position: relative; min-height: 0;
+      grid-row: 20 / 22; min-height: 0;
       display: flex; align-items: center; justify-content: center;
-      padding: 0 44px;
+      padding: 0 var(--side-margin);
     }
     #gesture-hint {
-      font-size: clamp(9px, 2.6vw, 11px); line-height: 1.15;
+      font-size: clamp(11px, 3.2vw, 13px); line-height: 1.3;
       color: var(--brown-faint); text-align: center;
-      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    }
+
+    /* ── Rows 8-9: PFP grid (swipes horizontally when > 10) ── */
+    #pfp-wrap {
+      grid-row: 22 / 28; min-height: 0; position: relative;
     }
     .swipe-arrow {
       display: none; position: absolute; top: 50%; transform: translateY(-50%);
-      width: 26px; height: 26px; border-radius: 50%;
+      width: 26px; height: 26px; border-radius: 50%; z-index: 6;
       background: #fff; border: 1.5px solid var(--line); color: var(--brown-soft);
       cursor: pointer; align-items: center; justify-content: center; padding: 0;
+      box-shadow: 0 2px 8px rgba(91,63,36,0.16);
     }
     .swipe-arrow.visible { display: flex; }
-    #arrow-left  { left: 20px; }
-    #arrow-right { right: 20px; }
+    #arrow-left  { left: var(--side-margin); }
+    #arrow-right { right: var(--side-margin); }
 
-    /* ── Rows 8-9: PFP grid (swipes horizontally when > 10) ── */
     #pfp-scroller {
-      grid-row: 22 / 28; min-height: 0;
+      height: 100%; min-height: 0;
       overflow-x: auto; overflow-y: hidden;
       touch-action: pan-x; scrollbar-width: none;
-      scroll-behavior: smooth; padding: 0 10px;
+      scroll-behavior: smooth; padding: 0 var(--side-margin);
     }
     #pfp-scroller::-webkit-scrollbar { display: none; }
     #pfp-grid {
@@ -155,7 +161,7 @@
     #action-row {
       grid-row: 28 / 31; min-height: 0;
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-      padding: 8px 10px 10px; align-items: center;
+      padding: 8px var(--side-margin) 10px; align-items: center;
     }
     .btn {
       width: 100%; height: 100%; max-height: 46px; min-height: 36px;
@@ -306,7 +312,6 @@
   <!-- Row 1 -->
   <header id="header">
     <h1 id="app-title"><span class="s">Seismic</span> logo &amp; PFP</h1>
-    <!-- Fixed app title per spec §3 — does not change with the chosen mode -->
     <div id="lang-switcher">
       <button class="lang-btn lang-active" id="btn-en">EN</button>
       <button class="lang-btn"             id="btn-vi">VI</button>
@@ -332,20 +337,22 @@
     </button>
   </section>
 
-  <!-- Row 7 (bottom third): hint + swipe arrows -->
+  <!-- Row 7 (last 2/3): caption -->
   <div id="hint-strip">
+    <p id="gesture-hint">Choose a photo, pick a PFP, drag anywhere to move – 2 fingers to zoom &amp; rotate – X to delete</p>
+  </div>
+
+  <!-- Rows 8–9: PFP grid, swipe arrows centred over it within the side margins -->
+  <div id="pfp-wrap">
     <button class="swipe-arrow" id="arrow-left" aria-label="Scroll left">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
-    <p id="gesture-hint">Choose a photo, pick a PFP, drag anywhere to move – 2 fingers to zoom &amp; rotate – X to delete</p>
+    <div id="pfp-scroller">
+      <div id="pfp-grid"></div>
+    </div>
     <button class="swipe-arrow" id="arrow-right" aria-label="Scroll right">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
-  </div>
-
-  <!-- Rows 8–9: PFP grid -->
-  <div id="pfp-scroller">
-    <div id="pfp-grid"></div>
   </div>
 
   <!-- Row 10 -->
@@ -420,6 +427,8 @@
    ═══════════════════════════════════════════════════════════ */
 const STRINGS = {
   en: {
+    titleSeismic:  '<span class="s">Seismic</span> logo &amp; PFP',
+    titlePersonal: '<span class="s">Personal</span> logo &amp; PFP',
     placeholder:  'Tap to choose a photo',
     hint:         'Choose a photo, pick a PFP, drag anywhere to move – 2 fingers to zoom & rotate – X to delete',
     addPfp:       'Add more PFP',
@@ -445,6 +454,8 @@ const STRINGS = {
     toastXFailed: 'Could not load that X avatar',
   },
   vi: {
+    titleSeismic:  '<span class="s">Seismic</span> logo &amp; PFP',
+    titlePersonal: '<span class="s">Personal</span> logo &amp; PFP',
     placeholder:  'Nhấn để chọn ảnh',
     hint:         'Chọn ảnh, chọn PFP, kéo bất cứ đâu để di chuyển – 2 ngón để zoom & xoay – X để xóa',
     addPfp:       'Thêm PFP',
@@ -482,6 +493,7 @@ function setLang(lang) {
   const s = t();
   $('btn-en').classList.toggle('lang-active', lang === 'en');
   $('btn-vi').classList.toggle('lang-active', lang === 'vi');
+  $('app-title').innerHTML = currentMode === 'personal' ? s.titlePersonal : s.titleSeismic;
   $('placeholder-text').textContent = s.placeholder;
   $('gesture-hint').textContent   = s.hint;
   $('lbl-addpfp').textContent     = s.addPfp;
@@ -538,6 +550,7 @@ function startMode(mode) {
       }))
     : [];
   $('modal-mode').classList.remove('visible');
+  setLang(currentLang);   // updates the header title for the chosen mode
   renderPfpGrid();
 }
 $('mode-seismic').addEventListener('click',  () => startMode('seismic'));
@@ -546,9 +559,11 @@ $('mode-personal').addEventListener('click', () => startMode('personal'));
 /* ═══════════════════════════════════════════════════════════
    PFP grid — fills top→bottom then left→right (grid-auto-flow: column)
    ═══════════════════════════════════════════════════════════ */
+const sideMargin = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--side-margin')) || 20;
+
 function sizePfpCells() {
   const gap = 6;
-  const w = pfpScroller.clientWidth  - 20;          // minus horizontal padding
+  const w = pfpScroller.clientWidth - sideMargin * 2;   // minus horizontal padding
   const h = pfpScroller.clientHeight;
   if (w <= 0 || h <= 0) return;
   const cell = Math.floor(Math.min((w - gap * 4) / 5, (h - gap) / 2));
