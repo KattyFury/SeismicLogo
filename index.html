@@ -2,261 +2,377 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="SeismicLogo">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="Drop Seismic logos and community PFPs onto your photos.">
   <title>SeismicLogo</title>
-  <link rel="icon" type="image/png" href="icon.png">
+
+  <!-- App / favicon icons — all generated from the rocky brand mark (logos/0.png) -->
+  <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/png" sizes="32x32" href="icon.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="icon-64.png">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1a1a1a">
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600&family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@600&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#ffffff">
+
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600&family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --brown:        #5B3F24;   /* primary text */
+      --brown-soft:   #785430;   /* accent / brand mark colour */
+      --brown-faint:  #A9906F;   /* secondary text */
+      --line:         #EDE6DD;
+      --grey-fill:    #F2F0ED;   /* photo area + empty PFP cells */
+      --grey-line:    #E4DFD8;
+      --neon:         #39FF14;
+      --gap:          6px;
+    }
+
     *, *::before, *::after {
       box-sizing: border-box; margin: 0; padding: 0;
       -webkit-tap-highlight-color: transparent;
     }
-    html, body { height: 100%; overflow: hidden; background: #fff; font-family: 'Roboto', sans-serif; }
+    html, body {
+      height: 100%; overflow: hidden; background: #fff;
+      font-family: 'Roboto', sans-serif; color: var(--brown);
+      overscroll-behavior: none;
+    }
 
-    /* ── Header ───────────────────────────────────── */
+    /* ── 10-row layout ─────────────────────────────────────────
+       Modelled as 30 equal sub-rows so the spec's "1/3 of a row"
+       boundaries land exactly. Spec row N = sub-rows 3N-2 … 3N.   */
+    #app {
+      height: 100vh; height: 100dvh;
+      display: grid;
+      grid-template-rows: repeat(30, 1fr);
+      background: #fff;
+    }
+
+    /* ── Row 1 (top 2/3): title + language ─────────────────── */
     #header {
-      height: 52px; display: flex; align-items: center; justify-content: center;
-      position: relative; background: #fff; border-bottom: 1px solid #f0e8ec;
-      flex-shrink: 0; z-index: 10;
+      grid-row: 1 / 3;
+      display: grid; grid-template-columns: 2fr 1fr;
+      align-items: center; padding: 0 12px; min-height: 0;
     }
-    #header h1 {
+    #app-title {
       font-family: 'Roboto Condensed', sans-serif;
-      font-size: 26px; letter-spacing: 0.5px; line-height: 1; font-weight: 600;
+      font-weight: 700; letter-spacing: 0.2px; text-align: center;
+      font-size: clamp(15px, 4.4vw, 21px); line-height: 1.1;
+      color: var(--brown); white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
     }
-    #header h1 .s { color: #825A6D; }
-    #header h1 .l { color: #000; }
-
-    #lang-switcher { position: absolute; right: 12px; display: flex; gap: 2px; }
+    #app-title .s { color: var(--brown-soft); }
+    #lang-switcher { display: flex; gap: 3px; justify-content: flex-end; }
     .lang-btn {
-      padding: 4px 9px; border-radius: 6px; border: 1.5px solid #e8dce3;
-      background: none; font-family: 'Roboto', sans-serif; font-size: 11px;
-      font-weight: 700; color: #aaa; cursor: pointer; letter-spacing: 0.4px;
-      transition: all 0.15s; min-width: 34px; text-align: center;
+      padding: 4px 8px; border-radius: 6px; border: 1.5px solid var(--line);
+      background: none; font: 700 11px 'Roboto', sans-serif;
+      color: var(--brown-faint); cursor: pointer; letter-spacing: 0.4px;
+      transition: all 0.15s; min-width: 32px; text-align: center;
     }
-    .lang-btn.lang-active { background: #825A6D; border-color: #825A6D; color: #fff; }
+    .lang-btn.lang-active { background: var(--brown-soft); border-color: var(--brown-soft); color: #fff; }
 
-    /* ── Layout ───────────────────────────────────── */
-    #main { display: flex; flex-direction: column; height: calc(100vh - 52px); }
-
-    /* ── Image area ───────────────────────────────── */
+    /* ── Row 1 (bottom 1/3) → row 7 (top 2/3): photo ───────── */
     #image-area {
-      flex: 0 0 60%; min-height: 0; position: relative; background: #f7f3f5;
-      overflow: hidden; display: flex; align-items: center; justify-content: center;
+      grid-row: 3 / 21; min-height: 0;
+      position: relative; overflow: hidden;
+      margin: 0 10px; border-radius: 14px;
+      background: var(--grey-fill);
+      display: flex; align-items: center; justify-content: center;
     }
     #image-placeholder {
-      display: flex; flex-direction: column; align-items: center; gap: 14px;
-      color: #c4a8b3; pointer-events: none;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      color: var(--brown-faint); pointer-events: none; padding: 0 20px; text-align: center;
     }
-    #image-placeholder svg { width: 72px; height: 72px; }
-    #image-placeholder p   { font-size: 15px; font-weight: 400; }
+    #image-placeholder svg { width: 58px; height: 58px; }
+    #image-placeholder p   { font-size: 15px; }
     #tap-layer    { position: absolute; inset: 0; z-index: 1; cursor: pointer; }
     #photo-canvas { position: absolute; display: none; z-index: 2; }
 
-    /* ── Overlays ─────────────────────────────────── */
+    #btn-clear-photo {
+      display: none; position: absolute; top: 8px; right: 8px; z-index: 5;
+      width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(0,0,0,0.42); border: none; cursor: pointer;
+      align-items: center; justify-content: center; color: #fff;
+    }
+    #btn-clear-photo.visible { display: flex; }
+
+    /* ── Row 7 (bottom 1/3): hint + swipe arrows ───────────── */
+    #hint-strip {
+      grid-row: 21 / 22; position: relative; min-height: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 44px;
+    }
+    #gesture-hint {
+      font-size: clamp(9px, 2.6vw, 11px); line-height: 1.15;
+      color: var(--brown-faint); text-align: center;
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .swipe-arrow {
+      display: none; position: absolute; top: 50%; transform: translateY(-50%);
+      width: 26px; height: 26px; border-radius: 50%;
+      background: #fff; border: 1.5px solid var(--line); color: var(--brown-soft);
+      cursor: pointer; align-items: center; justify-content: center; padding: 0;
+    }
+    .swipe-arrow.visible { display: flex; }
+    #arrow-left  { left: 20px; }
+    #arrow-right { right: 20px; }
+
+    /* ── Rows 8-9: PFP grid (swipes horizontally when > 10) ── */
+    #pfp-scroller {
+      grid-row: 22 / 28; min-height: 0;
+      overflow-x: auto; overflow-y: hidden;
+      touch-action: pan-x; scrollbar-width: none;
+      scroll-behavior: smooth; padding: 0 10px;
+    }
+    #pfp-scroller::-webkit-scrollbar { display: none; }
+    #pfp-grid {
+      display: grid; grid-auto-flow: column;
+      grid-template-rows: var(--cell, 56px) var(--cell, 56px);
+      grid-auto-columns: var(--cell, 56px);
+      gap: var(--gap);
+      width: max-content; margin: auto;
+      height: 100%; align-content: center;
+    }
+    .pfp-cell {
+      width: var(--cell, 56px); height: var(--cell, 56px);
+      border-radius: 12px; border: 1.5px solid var(--line);
+      background: #fff; padding: 4px; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: transform 0.1s, border-color 0.15s;
+    }
+    .pfp-cell img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    .pfp-cell:active { transform: scale(0.94); border-color: var(--brown-soft); }
+    .pfp-cell.pfp-empty {
+      background: var(--grey-fill); border-color: var(--grey-line);
+      cursor: default; pointer-events: none;
+    }
+    .pfp-cell.pfp-loading { background: var(--grey-fill); }
+
+    /* ── Row 10: three equally sized actions ───────────────── */
+    #action-row {
+      grid-row: 28 / 31; min-height: 0;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      padding: 8px 10px 10px; align-items: center;
+    }
+    .btn {
+      width: 100%; height: 100%; max-height: 46px; min-height: 36px;
+      border: none; border-radius: 12px;
+      font: 500 clamp(10px, 3vw, 12px) 'Roboto', sans-serif;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: 4px; transition: opacity 0.15s, transform 0.1s; white-space: nowrap; padding: 0 4px;
+    }
+    .btn:active:not(:disabled) { opacity: 0.82; transform: scale(0.97); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn svg { flex-shrink: 0; }
+    .btn-outline { background: #fff; color: var(--brown-soft); border: 1.5px solid var(--line); }
+    .btn-solid   { background: var(--brown-soft); color: #fff; }
+
+    /* ── Canvas overlays ───────────────────────────────────── */
     .overlay-item {
       position: absolute; z-index: 3; touch-action: none; user-select: none; cursor: grab;
     }
     .overlay-item:active { cursor: grabbing; }
-    .overlay-item.item-active { box-shadow: 0 0 0 4px #39FF14; border-radius: 3px; }
-
-    /* Logo item */
+    .overlay-item.item-active { box-shadow: 0 0 0 3px var(--neon); border-radius: 3px; }
     .logo-item img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; display: block; }
 
-    /* Text item — inline-block so box fits content, max-width caps it */
     .text-item { display: inline-block; }
     .text-display {
       display: block;
       font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 30px;
-      text-transform: uppercase;
-      padding: 6px 14px;
+      text-transform: uppercase; padding: 6px 14px;
       white-space: pre-wrap; word-break: break-word;
       line-height: 1.25; text-align: center;
-      outline: none; cursor: text;
-      caret-color: #39FF14;
+      outline: none; cursor: text; caret-color: var(--neon);
     }
-    /* Color schemes */
     .text-display.scheme-dark  { color: #fff; background: #000; }
     .text-display.scheme-light { color: #000; background: #fff; }
 
-    /* ── Rotate handle ───────────────────────────────── */
-    .rotate-handle {
-      display: none;
-      position: absolute; top: -13px; right: -13px;
+    /* Per-item handles: rotate top-left, delete top-right (spec §7) */
+    .item-handle {
+      display: none; position: absolute;
       width: 26px; height: 26px; border-radius: 50%;
-      background: #fff; border: 2px solid #39FF14;
+      background: #fff; border: 2px solid var(--neon);
       box-shadow: 0 1px 5px rgba(0,0,0,0.3);
-      cursor: crosshair; z-index: 20; touch-action: none;
-      /* rotation icon */
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M21.5 2v6h-6'/%3E%3Cpath d='M21.34 15.57a10 10 0 1 1-.57-8.38'/%3E%3C/svg%3E");
-      background-size: 14px; background-repeat: no-repeat; background-position: center;
+      z-index: 20; touch-action: none;
+      background-size: 13px; background-repeat: no-repeat; background-position: center;
     }
-    .item-active .rotate-handle { display: block; }
+    .item-active .item-handle { display: block; }
+    .rotate-handle {
+      top: -13px; left: -13px; cursor: crosshair;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M21.5 2v6h-6'/%3E%3Cpath d='M21.34 15.57a10 10 0 1 1-.57-8.38'/%3E%3C/svg%3E");
+    }
+    .delete-handle {
+      top: -13px; right: -13px; cursor: pointer; border-color: #E24B4B;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E24B4B' stroke-width='3' stroke-linecap='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E");
+    }
 
-    /* ── Text color toolbar (floats above keyboard) ───── */
+    /* ── Text colour toolbar ───────────────────────────────── */
     #text-toolbar {
-      display: none;
-      position: fixed; left: 0; right: 0;
-      padding: 6px 0;
-      align-items: center; justify-content: center;
-      z-index: 999; pointer-events: none;
+      display: none; position: fixed; left: 0; right: 0; bottom: 0;
+      padding: 6px 0; align-items: center; justify-content: center;
+      z-index: 500; pointer-events: none;
     }
     #text-toolbar.visible { display: flex; }
     #scheme-switch {
-      display: flex; gap: 2px;
-      background: #f0ecee; border-radius: 8px; padding: 3px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.18);
-      pointer-events: all;
+      display: flex; gap: 2px; background: #F3EFEA; border-radius: 9px; padding: 3px;
+      box-shadow: 0 2px 12px rgba(91,63,36,0.22); pointer-events: all;
     }
     .scheme-btn {
       padding: 5px 20px; border-radius: 6px; border: none;
-      font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 12px;
-      letter-spacing: 0.5px; cursor: pointer;
-      background: transparent; color: #aaa;
-      transition: all 0.15s;
+      font: 700 12px 'Roboto', sans-serif; letter-spacing: 0.5px; cursor: pointer;
+      background: transparent; color: var(--brown-faint); transition: all 0.15s;
     }
     .scheme-btn.active.scheme-btn-dark  { background: #000; color: #fff; }
-    .scheme-btn.active.scheme-btn-light { background: #fff; color: #000; border: 1.5px solid #ddd; }
+    .scheme-btn.active.scheme-btn-light { background: #fff; color: #000; box-shadow: inset 0 0 0 1.5px #ddd; }
 
-
-    /* ── Controls ─────────────────────────────────── */
-    #controls {
-      flex: 1 1 0; min-height: 0; background: #fff; border-top: 1px solid #f0e8ec;
-      padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 8px;
-      overflow-y: auto;
+    /* ── Modals ────────────────────────────────────────────── */
+    .modal {
+      display: none; position: fixed; inset: 0; z-index: 800;
+      background: rgba(58,40,24,0.42); backdrop-filter: blur(2px);
+      align-items: center; justify-content: center; padding: 22px;
     }
-    .row-label { font-size: 11px; color: #999; font-weight: 500; letter-spacing: 0.4px; text-transform: uppercase; }
-
-    .logo-grid { display: grid; grid-template-columns: repeat(6, 44px); gap: 5px; justify-content: center; }
-    .logo-btn {
-      width: 44px; height: 44px; border-radius: 8px; border: 2px solid #eee;
-      padding: 5px; background: #fafafa; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: border-color 0.15s, background 0.15s;
+    .modal.visible { display: flex; }
+    .modal-card {
+      background: #fff; border-radius: 18px; padding: 20px 18px;
+      width: 100%; max-width: 340px;
+      box-shadow: 0 18px 46px rgba(58,40,24,0.28);
+      animation: pop 0.18s ease-out;
     }
-    .logo-btn img { width: 100%; height: 100%; object-fit: contain; }
-    .logo-btn:active { opacity: 0.7; }
-
-    #gesture-hint { font-size: 12px; color: #bbb; text-align: center; line-height: 1.4; }
-
-    .action-row { display: flex; gap: 6px; }
-    .btn {
-      flex: 1; height: 42px; border: none; border-radius: 12px;
-      font-family: 'Roboto', sans-serif; font-size: 12px; font-weight: 500;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      gap: 4px; transition: opacity 0.15s, transform 0.1s; outline: none; white-space: nowrap;
+    @keyframes pop { from { opacity: 0; transform: translateY(10px) scale(0.97); } }
+    .modal-title {
+      font-family: 'Roboto Condensed', sans-serif; font-weight: 700;
+      font-size: 18px; text-align: center; margin-bottom: 16px; color: var(--brown);
     }
-    .btn:active:not(:disabled) { opacity: 0.8; transform: scale(0.97); }
-    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
-    .btn-delete  { background: #fff0f4; color: #b03055; border: 1.5px solid #f5c6d3; }
-    .btn-addtext { background: #f5f0f3; color: #825A6D; border: 1.5px solid #e0d4db; }
-    .btn-save    { background: #825A6D; color: #fff; }
-
-    /* ── Clear photo button ───────────────────────── */
-    #btn-clear-photo {
-      display: none; position: absolute; top: 8px; right: 8px; z-index: 5;
-      width: 32px; height: 32px; border-radius: 50%;
-      background: rgba(0,0,0,0.4); border: none; cursor: pointer;
-      align-items: center; justify-content: center; color: #fff;
-      transition: background 0.15s;
+    .mode-btn {
+      display: block; width: 100%; text-align: left; cursor: pointer;
+      background: #fff; border: 1.5px solid var(--line); border-radius: 14px;
+      padding: 13px 15px; margin-bottom: 10px; transition: all 0.15s;
     }
-    #btn-clear-photo:hover { background: rgba(0,0,0,0.65); }
-    #btn-clear-photo.visible { display: flex; }
+    .mode-btn:active { transform: scale(0.98); border-color: var(--brown-soft); }
+    .mode-btn strong {
+      display: block; font-family: 'Roboto Condensed', sans-serif;
+      font-size: 16px; font-weight: 700; color: var(--brown-soft); margin-bottom: 3px;
+    }
+    .mode-btn span { font-size: 12px; line-height: 1.35; color: var(--brown-faint); }
 
-    /* Toast */
+    #x-input {
+      width: 100%; height: 44px; border-radius: 11px; border: none;
+      background: var(--grey-fill); padding: 0 14px; margin-bottom: 10px;
+      font: 400 14px 'Roboto', sans-serif; color: var(--brown); outline: none;
+    }
+    #x-input::placeholder { color: var(--brown-faint); }
+    #x-input:focus { box-shadow: inset 0 0 0 1.5px var(--brown-soft); }
+    #btn-pick-images {
+      width: 100%; height: 44px; border-radius: 11px; border: none; cursor: pointer;
+      background: #fff; color: var(--brown-soft);
+      font: 500 13px 'Roboto', sans-serif;
+      box-shadow: 0 3px 10px rgba(91,63,36,0.18);
+      margin-bottom: 16px; transition: transform 0.1s;
+    }
+    #btn-pick-images:active { transform: scale(0.98); }
+    #btn-pick-images.has-selection { background: var(--brown-soft); color: #fff; }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-actions .btn { height: 42px; max-height: 42px; font-size: 13px; }
+
+    /* ── Toast ─────────────────────────────────────────────── */
     #toast {
-      position: fixed; bottom: 28px; left: 50%;
-      transform: translateX(-50%) translateY(90px);
-      background: rgba(20,10,15,0.85); color: #fff; padding: 10px 22px;
-      border-radius: 22px; font-size: 14px; font-weight: 500;
+      position: fixed; bottom: 26px; left: 50%;
+      transform: translateX(-50%) translateY(96px);
+      background: rgba(40,26,14,0.9); color: #fff; padding: 10px 20px;
+      border-radius: 22px; font-size: 13px; font-weight: 500;
       transition: transform 0.28s cubic-bezier(.25,.8,.25,1);
-      z-index: 999; white-space: nowrap; pointer-events: none;
+      z-index: 900; max-width: 86vw; text-align: center; pointer-events: none;
     }
     #toast.show { transform: translateX(-50%) translateY(0); }
-    #file-input { display: none; }
+    input[type=file] { display: none; }
 
-    /* ── Desktop wrapper ──────────────────────────────── */
-    @media (min-width: 500px) {
-      body { background: #e8dce3; display: flex; align-items: flex-start; justify-content: center; }
-      #header, #main {
-        max-width: 430px; width: 100%;
+    /* ── Desktop: phone-shaped column ──────────────────────── */
+    @media (min-width: 520px) {
+      body { background: #F0EAE2; }
+      #app {
+        max-width: 430px; margin: 0 auto; background: #fff;
+        box-shadow: 0 0 40px rgba(91,63,36,0.12);
       }
-      #header {
-        position: fixed; top: 0; left: 50%; transform: translateX(-50%);
-        box-shadow: 0 1px 6px rgba(130,90,109,0.12);
-      }
-      #main { margin-top: 52px; height: calc(100vh - 52px); }
     }
-
   </style>
 </head>
 <body>
 
-<header id="header">
-  <h1><span class="s">Seismic</span><span class="l">Logo</span></h1>
-  <div id="lang-switcher">
-    <button class="lang-btn lang-active" id="btn-en" onclick="setLang('en')">EN</button>
-    <button class="lang-btn"             id="btn-vi" onclick="setLang('vi')">VI</button>
-  </div>
-</header>
+<div id="app">
 
-<div id="main">
-  <div id="image-area">
+  <!-- Row 1 -->
+  <header id="header">
+    <h1 id="app-title"><span class="s">Seismic</span> logo &amp; PFP</h1>
+    <!-- Fixed app title per spec §3 — does not change with the chosen mode -->
+    <div id="lang-switcher">
+      <button class="lang-btn lang-active" id="btn-en">EN</button>
+      <button class="lang-btn"             id="btn-vi">VI</button>
+    </div>
+  </header>
+
+  <!-- Rows 1(bottom)–7(top): photo -->
+  <section id="image-area">
     <div id="image-placeholder">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
         <rect x="3" y="3" width="18" height="18" rx="2.5" ry="2.5"/>
         <circle cx="8.5" cy="8.5" r="1.5"/>
         <polyline points="21 15 16 10 5 21"/>
       </svg>
-      <p>Tap to choose a photo</p>
+      <p id="placeholder-text">Tap to choose a photo</p>
     </div>
     <div id="tap-layer"></div>
     <canvas id="photo-canvas"></canvas>
     <button id="btn-clear-photo" title="Change photo">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
       </svg>
     </button>
+  </section>
+
+  <!-- Row 7 (bottom third): hint + swipe arrows -->
+  <div id="hint-strip">
+    <button class="swipe-arrow" id="arrow-left" aria-label="Scroll left">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <p id="gesture-hint">Choose a photo, pick a PFP, drag anywhere to move – 2 fingers to zoom &amp; rotate – X to delete</p>
+    <button class="swipe-arrow" id="arrow-right" aria-label="Scroll right">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
   </div>
 
-  <div id="controls">
-    <span class="row-label">Logo</span>
-    <div class="logo-grid" id="logo-strip"></div>
+  <!-- Rows 8–9: PFP grid -->
+  <div id="pfp-scroller">
+    <div id="pfp-grid"></div>
+  </div>
 
-    <p id="gesture-hint">Drag anywhere to move · 2 fingers to zoom &amp; rotate</p>
-
-    <div class="action-row">
-      <button class="btn btn-delete" id="btn-delete" disabled>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-          <polyline points="3 6 5 6 21 6"/>
-          <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-          <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
-        </svg>
-        <span data-i18n="deleteSel">Delete Selection</span>
-      </button>
-      <button class="btn btn-addtext" id="btn-addtext">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-          <path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>
-        </svg>
-        <span data-i18n="addText">Add Text</span>
-      </button>
-      <button class="btn btn-save" id="btn-save" disabled>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        <span data-i18n="saveImage">Save Image</span>
-      </button>
-    </div>
+  <!-- Row 10 -->
+  <div id="action-row">
+    <button class="btn btn-outline" id="btn-addpfp">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      <span id="lbl-addpfp">Add more PFP</span>
+    </button>
+    <button class="btn btn-outline" id="btn-addtext">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>
+      </svg>
+      <span id="lbl-addtext">Add text</span>
+    </button>
+    <button class="btn btn-solid" id="btn-save" disabled>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      <span id="lbl-save">Save image</span>
+    </button>
   </div>
 </div>
 
-
+<!-- Text colour toolbar -->
 <div id="text-toolbar">
   <div id="scheme-switch">
     <button class="scheme-btn scheme-btn-dark" id="scheme-dark">WHITE</button>
@@ -264,83 +380,334 @@
   </div>
 </div>
 
+<!-- Mode selection -->
+<div class="modal visible" id="modal-mode">
+  <div class="modal-card">
+    <p class="modal-title" id="mode-question">Which mode do you want to use?</p>
+    <button class="mode-btn" id="mode-seismic">
+      <strong id="mode-seismic-title">Seismic logo &amp; PFP</strong>
+      <span id="mode-seismic-desc">Logos and PFPs from the Seismic community</span>
+    </button>
+    <button class="mode-btn" id="mode-personal">
+      <strong id="mode-personal-title">Personal PFP and logo</strong>
+      <span id="mode-personal-desc">Start empty and add your own</span>
+    </button>
+  </div>
+</div>
+
+<!-- Add more PFP -->
+<div class="modal" id="modal-addpfp">
+  <div class="modal-card">
+    <p class="modal-title" id="addpfp-title">Add more PFP</p>
+    <input type="text" id="x-input" placeholder="Paste an X link or handle…"
+           autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <button id="btn-pick-images">Pick images from gallery</button>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="btn-addpfp-cancel">Cancel</button>
+      <button class="btn btn-solid"   id="btn-addpfp-add">Add</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 <input type="file" id="file-input" accept="image/*">
+<input type="file" id="pfp-file-input" accept="image/*" multiple>
 
+<script src="assets.js"></script>
 <script>
-/* ── i18n ────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   i18n
+   ═══════════════════════════════════════════════════════════ */
 const STRINGS = {
-  vi: {
-    placeholder: 'Nhấn để chọn ảnh',
-    hint:        'Chạm bất cứ đâu để di chuyển · 2 ngón để zoom & xoay',
-    deleteSel:   'Xóa lựa chọn',
-    addText:     'Thêm chữ',
-    saveImage:   'Lưu ảnh',
-    rowLabel:    'Logo',
-    toastNoPhoto:'Hãy chọn ảnh trước nhé 📸',
-    toastSaved:  'Ảnh đã được lưu vào thư viện ✓',
-    toastDown:   'Ảnh đã được tải xuống ✓',
-  },
   en: {
-    placeholder: 'Tap to choose a photo',
-    hint:        'Drag anywhere to move · 2 fingers to zoom & rotate',
-    deleteSel:   'Delete Selection',
-    addText:     'Add Text',
-    saveImage:   'Save Image',
-    rowLabel:    'Logo',
-    toastNoPhoto:'Please choose a photo first 📸',
-    toastSaved:  'Photo saved to library ✓',
-    toastDown:   'Photo downloaded ✓',
+    placeholder:  'Tap to choose a photo',
+    hint:         'Choose a photo, pick a PFP, drag anywhere to move – 2 fingers to zoom & rotate – X to delete',
+    addPfp:       'Add more PFP',
+    addText:      'Add text',
+    saveImage:    'Save image',
+    modeQuestion: 'Which mode do you want to use?',
+    modeSeismic:  'Seismic logo & PFP',
+    modeSeismicDesc:  'Logos and PFPs from the Seismic community',
+    modePersonal: 'Personal PFP and logo',
+    modePersonalDesc: 'Start empty and add your own',
+    addPfpTitle:  'Add more PFP',
+    xPlaceholder: 'Paste an X link or handle…',
+    pickImages:   'Pick images from gallery',
+    pickedN:      n => `${n} image${n > 1 ? 's' : ''} selected`,
+    cancel:       'Cancel',
+    add:          'Add',
+    toastNoPhoto: 'Please choose a photo first 📸',
+    toastSaved:   'Photo saved to library ✓',
+    toastDown:    'Photo downloaded ✓',
+    toastEmptyAdd:'Enter an X handle or pick some images first',
+    toastBadHandle:'That does not look like an X link or handle',
+    toastAdded:   n => `Added ${n} PFP${n > 1 ? 's' : ''} ✓`,
+    toastXFailed: 'Could not load that X avatar',
+  },
+  vi: {
+    placeholder:  'Nhấn để chọn ảnh',
+    hint:         'Chọn ảnh, chọn PFP, kéo bất cứ đâu để di chuyển – 2 ngón để zoom & xoay – X để xóa',
+    addPfp:       'Thêm PFP',
+    addText:      'Thêm chữ',
+    saveImage:    'Lưu ảnh',
+    modeQuestion: 'Bạn chọn chế độ sử dụng nào?',
+    modeSeismic:  'Seismic logo & PFP',
+    modeSeismicDesc:  'Gồm các PFP và logo của cộng đồng Seismic',
+    modePersonal: 'Personal PFP and logo',
+    modePersonalDesc: 'Custom theo sở thích của bạn',
+    addPfpTitle:  'Thêm PFP',
+    xPlaceholder: 'Nhập link X hoặc handle…',
+    pickImages:   'Nhập ảnh từ kho ảnh',
+    pickedN:      n => `Đã chọn ${n} ảnh`,
+    cancel:       'Hủy',
+    add:          'Thêm',
+    toastNoPhoto: 'Hãy chọn ảnh trước nhé 📸',
+    toastSaved:   'Ảnh đã được lưu vào thư viện ✓',
+    toastDown:    'Ảnh đã được tải xuống ✓',
+    toastEmptyAdd:'Nhập handle X hoặc chọn ảnh trước đã',
+    toastBadHandle:'Đây không giống link X hoặc handle',
+    toastAdded:   n => `Đã thêm ${n} PFP ✓`,
+    toastXFailed: 'Không tải được avatar X đó',
   }
 };
 let currentLang = 'en';
+let currentMode = 'seismic';   // 'seismic' | 'personal'
+
+const $ = id => document.getElementById(id);
+
+function t() { return STRINGS[currentLang]; }
 
 function setLang(lang) {
   currentLang = lang;
-  const s = STRINGS[lang];
-  document.getElementById('btn-vi').classList.toggle('lang-active', lang === 'vi');
-  document.getElementById('btn-en').classList.toggle('lang-active', lang === 'en');
-  document.querySelector('#image-placeholder p').textContent     = s.placeholder;
-  document.getElementById('gesture-hint').textContent           = s.hint;
-  document.querySelector('[data-i18n="deleteSel"]').textContent  = s.deleteSel;
-  document.querySelector('[data-i18n="addText"]').textContent    = s.addText;
-  document.querySelector('[data-i18n="saveImage"]').textContent  = s.saveImage;
-  document.querySelector('.row-label').textContent               = s.rowLabel;
+  const s = t();
+  $('btn-en').classList.toggle('lang-active', lang === 'en');
+  $('btn-vi').classList.toggle('lang-active', lang === 'vi');
+  $('placeholder-text').textContent = s.placeholder;
+  $('gesture-hint').textContent   = s.hint;
+  $('lbl-addpfp').textContent     = s.addPfp;
+  $('lbl-addtext').textContent    = s.addText;
+  $('lbl-save').textContent       = s.saveImage;
+  $('mode-question').textContent  = s.modeQuestion;
+  $('mode-seismic-title').textContent  = s.modeSeismic;
+  $('mode-seismic-desc').textContent   = s.modeSeismicDesc;
+  $('mode-personal-title').textContent = s.modePersonal;
+  $('mode-personal-desc').textContent  = s.modePersonalDesc;
+  $('addpfp-title').textContent   = s.addPfpTitle;
+  $('x-input').placeholder        = s.xPlaceholder;
+  $('btn-addpfp-cancel').textContent = s.cancel;
+  $('btn-addpfp-add').textContent    = s.add;
+  refreshPickButtonLabel();
 }
+$('btn-en').addEventListener('click', () => setLang('en'));
+$('btn-vi').addEventListener('click', () => setLang('vi'));
 
-/* ── Desktop detection ───────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   State
+   ═══════════════════════════════════════════════════════════ */
 const isDesktop = /Windows|Macintosh|Linux/.test(navigator.userAgent)
                && !/Android|iPhone|iPad|iPod/.test(navigator.userAgent);
 
-/* ── State ───────────────────────────────────────────── */
 let photoNaturalImg = null;
 let overlayItems    = [];
 let activeItem      = null;
 let nextId          = 1;
+let pfpList         = [];   // [{ src, fallback?, label }]
 
-/* ── DOM ─────────────────────────────────────────────── */
-const imageArea   = document.getElementById('image-area');
-const tapLayer    = document.getElementById('tap-layer');
-const photoCanvas = document.getElementById('photo-canvas');
+const imageArea   = $('image-area');
+const tapLayer    = $('tap-layer');
+const photoCanvas = $('photo-canvas');
 const ctx         = photoCanvas.getContext('2d');
-const btnDelete      = document.getElementById('btn-delete');
-const btnAddText     = document.getElementById('btn-addtext');
-const btnSave        = document.getElementById('btn-save');
-const fileInput      = document.getElementById('file-input');
-const placeholder    = document.getElementById('image-placeholder');
-const btnClearPhoto  = document.getElementById('btn-clear-photo');
+const btnAddText  = $('btn-addtext');
+const btnSave     = $('btn-save');
+const fileInput   = $('file-input');
+const placeholder = $('image-placeholder');
+const btnClearPhoto = $('btn-clear-photo');
+const pfpScroller = $('pfp-scroller');
+const pfpGrid     = $('pfp-grid');
 
-/* ── Logo buttons ────────────────────────────────────── */
-const strip = document.getElementById('logo-strip');
-for (let i = 1; i <= 12; i++) {
-  const btn = document.createElement('button');
-  btn.className = 'logo-btn';
-  btn.innerHTML = `<img src="logos/${i}.png" alt="Logo ${i}" loading="lazy">`;
-  btn.addEventListener('click', () => addLogo(i));
-  strip.appendChild(btn);
+/* ═══════════════════════════════════════════════════════════
+   Mode selection
+   ═══════════════════════════════════════════════════════════ */
+function startMode(mode) {
+  currentMode = mode;
+  pfpList = mode === 'seismic'
+    ? SEISMIC_ASSETS.map(a => ({
+        src:      a.src,
+        fallback: a.kind === 'x' ? xAvatarUrl(a.handle) : null,
+        label:    a.label || ''
+      }))
+    : [];
+  $('modal-mode').classList.remove('visible');
+  renderPfpGrid();
+}
+$('mode-seismic').addEventListener('click',  () => startMode('seismic'));
+$('mode-personal').addEventListener('click', () => startMode('personal'));
+
+/* ═══════════════════════════════════════════════════════════
+   PFP grid — fills top→bottom then left→right (grid-auto-flow: column)
+   ═══════════════════════════════════════════════════════════ */
+function sizePfpCells() {
+  const gap = 6;
+  const w = pfpScroller.clientWidth  - 20;          // minus horizontal padding
+  const h = pfpScroller.clientHeight;
+  if (w <= 0 || h <= 0) return;
+  const cell = Math.floor(Math.min((w - gap * 4) / 5, (h - gap) / 2));
+  pfpGrid.style.setProperty('--cell', Math.max(28, cell) + 'px');
 }
 
-/* ── File picker ─────────────────────────────────────── */
+function renderPfpGrid() {
+  pfpGrid.innerHTML = '';
+  const total = Math.max(PFP_MIN_SLOTS, Math.ceil(pfpList.length / 2) * 2);
+  for (let i = 0; i < total; i++) {
+    const asset = pfpList[i];
+    if (!asset) {
+      const empty = document.createElement('div');
+      empty.className = 'pfp-cell pfp-empty';
+      pfpGrid.appendChild(empty);
+      continue;
+    }
+    const cell = document.createElement('button');
+    cell.className = 'pfp-cell';
+    const img = document.createElement('img');
+    img.alt = asset.label || 'PFP';
+    img.loading = 'lazy';
+    img.draggable = false;
+    // A cached X avatar that went missing falls back to the live lookup.
+    img.addEventListener('error', () => {
+      if (asset.fallback && img.src !== asset.fallback) {
+        asset.src = asset.fallback;
+        img.crossOrigin = 'anonymous';
+        img.src = asset.fallback;
+      }
+    });
+    if (/^https?:/i.test(asset.src)) img.crossOrigin = 'anonymous';
+    img.src = asset.src;
+    cell.appendChild(img);
+    cell.addEventListener('click', () => addLogo(asset));
+    pfpGrid.appendChild(cell);
+  }
+  sizePfpCells();
+  updateArrows();
+}
+
+/* ── Swipe arrows (only meaningful once the 10 slots overflow) ── */
+const arrowLeft  = $('arrow-left');
+const arrowRight = $('arrow-right');
+
+function updateArrows() {
+  const max = pfpScroller.scrollWidth - pfpScroller.clientWidth;
+  const canScroll = max > 4;
+  arrowLeft.classList.toggle('visible',  canScroll && pfpScroller.scrollLeft > 2);
+  arrowRight.classList.toggle('visible', canScroll && pfpScroller.scrollLeft < max - 2);
+}
+pfpScroller.addEventListener('scroll', updateArrows, { passive: true });
+arrowLeft.addEventListener('click',  () => { pfpScroller.scrollLeft -= pfpScroller.clientWidth * 0.8; });
+arrowRight.addEventListener('click', () => { pfpScroller.scrollLeft += pfpScroller.clientWidth * 0.8; });
+
+/* ═══════════════════════════════════════════════════════════
+   "Add more PFP" modal
+   ═══════════════════════════════════════════════════════════ */
+const modalAddPfp   = $('modal-addpfp');
+const xInput        = $('x-input');
+const btnPickImages = $('btn-pick-images');
+const pfpFileInput  = $('pfp-file-input');
+let pickedFiles = [];
+
+function refreshPickButtonLabel() {
+  const s = t();
+  btnPickImages.textContent = pickedFiles.length ? s.pickedN(pickedFiles.length) : s.pickImages;
+  btnPickImages.classList.toggle('has-selection', pickedFiles.length > 0);
+}
+
+function openAddPfp() {
+  pickedFiles = [];
+  xInput.value = '';
+  refreshPickButtonLabel();
+  modalAddPfp.classList.add('visible');
+}
+function closeAddPfp() {
+  modalAddPfp.classList.remove('visible');
+  pickedFiles = [];
+  pfpFileInput.value = '';
+}
+$('btn-addpfp').addEventListener('click', openAddPfp);
+$('btn-addpfp-cancel').addEventListener('click', closeAddPfp);
+modalAddPfp.addEventListener('click', e => { if (e.target === modalAddPfp) closeAddPfp(); });
+
+btnPickImages.addEventListener('click', () => pfpFileInput.click());
+pfpFileInput.addEventListener('change', function () {
+  pickedFiles = Array.from(this.files || []);
+  refreshPickButtonLabel();
+});
+
+/* Accepts: https://x.com/name, twitter.com/name, @name, name */
+function parseXHandle(raw) {
+  let v = (raw || '').trim();
+  if (!v) return null;
+  const m = v.match(/(?:x\.com|twitter\.com)\/(?:#!\/)?@?([A-Za-z0-9_]{1,15})/i);
+  if (m) return m[1];
+  v = v.replace(/^@/, '');
+  return /^[A-Za-z0-9_]{1,15}$/.test(v) ? v : null;
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload  = e => resolve(e.target.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+$('btn-addpfp-add').addEventListener('click', async () => {
+  const raw    = xInput.value.trim();
+  const files  = pickedFiles.slice();
+  if (!raw && !files.length) { showToast(t().toastEmptyAdd); return; }
+
+  const added = [];
+  if (raw) {
+    const handle = parseXHandle(raw);
+    if (!handle) { showToast(t().toastBadHandle); return; }
+    const url = xAvatarUrl(handle);
+    try {
+      await loadImage(url);                    // verify before adding
+      added.push({ src: url, fallback: null, label: '@' + handle });
+    } catch (_) {
+      showToast(t().toastXFailed); return;
+    }
+  }
+  for (const f of files) {
+    try { added.push({ src: await readFileAsDataURL(f), fallback: null, label: f.name }); }
+    catch (_) { /* skip unreadable file */ }
+  }
+  if (!added.length) { showToast(t().toastEmptyAdd); return; }
+
+  pfpList = pfpList.concat(added);
+  closeAddPfp();
+  renderPfpGrid();
+  showToast(t().toastAdded(added.length));
+});
+
+/* ═══════════════════════════════════════════════════════════
+   Image cache (also what the canvas export draws from)
+   ═══════════════════════════════════════════════════════════ */
+const imgCache = new Map();
+function loadImage(src) {
+  if (imgCache.has(src)) return imgCache.get(src);
+  const p = new Promise((resolve, reject) => {
+    const img = new Image();
+    if (/^https?:/i.test(src)) img.crossOrigin = 'anonymous';
+    img.onload  = () => resolve(img);
+    img.onerror = () => { imgCache.delete(src); reject(new Error('load failed: ' + src)); };
+    img.src = src;
+  });
+  imgCache.set(src, p);
+  return p;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Background photo
+   ═══════════════════════════════════════════════════════════ */
 tapLayer.addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', function () {
@@ -351,9 +718,7 @@ fileInput.addEventListener('change', function () {
     const img = new Image();
     img.onload = () => {
       photoNaturalImg = img;
-      overlayItems.forEach(item => item.el.remove());
-      overlayItems = []; activeItem = null;
-      refreshControls();
+      clearOverlays();
       drawPhoto();
       placeholder.style.display = 'none';
       tapLayer.style.zIndex = '0';
@@ -367,28 +732,30 @@ fileInput.addEventListener('change', function () {
   this.value = '';
 });
 
-/* ── Clear photo ─────────────────────────────────────── */
 btnClearPhoto.addEventListener('click', () => {
   photoNaturalImg = null;
   ctx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
   photoCanvas.style.display = 'none';
   placeholder.style.display = '';
   tapLayer.style.zIndex = '1';
-  overlayItems.forEach(item => item.el.remove());
-  overlayItems = []; activeItem = null;
-  refreshControls();
+  clearOverlays();
   btnSave.disabled = true;
   btnClearPhoto.classList.remove('visible');
 });
 
-/* ── Draw photo ──────────────────────────────────────── */
+function clearOverlays() {
+  overlayItems.forEach(item => item.el.remove());
+  overlayItems = []; activeItem = null;
+  refreshTextToolbar();
+}
+
 function drawPhoto() {
   if (!photoNaturalImg) return;
   const aW = imageArea.clientWidth, aH = imageArea.clientHeight;
   const ratio = photoNaturalImg.width / photoNaturalImg.height;
   let cW, cH;
   if (ratio > aW / aH) { cW = aW; cH = aW / ratio; }
-  else                  { cH = aH; cW = aH * ratio; }
+  else                 { cH = aH; cW = aH * ratio; }
   photoCanvas.width  = cW; photoCanvas.height = cH;
   photoCanvas.style.width  = cW + 'px';
   photoCanvas.style.height = cH + 'px';
@@ -397,29 +764,38 @@ function drawPhoto() {
   ctx.drawImage(photoNaturalImg, 0, 0, cW, cH);
 }
 
-/* ── Helper: is keyboard/contenteditable active? ────── */
 function isTyping() {
   const ae = document.activeElement;
   return ae && ae.contentEditable === 'true';
 }
+function blurText() {
+  const ae = document.activeElement;
+  if (ae && ae.contentEditable === 'true') ae.blur();
+}
 
-/* ── Add logo ────────────────────────────────────────── */
-function addLogo(num) {
-  if (!photoNaturalImg) { showToast(STRINGS[currentLang].toastNoPhoto); return; }
+/* ═══════════════════════════════════════════════════════════
+   Overlay items — logo / PFP
+   ═══════════════════════════════════════════════════════════ */
+function addLogo(asset) {
+  if (!photoNaturalImg) { showToast(t().toastNoPhoto); return; }
   if (isTyping()) blurText();
   const cW = photoCanvas.clientWidth, cH = photoCanvas.clientHeight;
   const item = {
-    id: nextId++, type: 'logo', num,
+    id: nextId++, type: 'logo', src: asset.src,
     x: cW / 2, y: cH / 2,
-    baseSize: Math.min(cW, cH) / 5,
+    baseSize: Math.min(cW, cH) / 4,
     scale: 1, rotation: 0, el: null
   };
   const el = document.createElement('div');
   el.className = 'overlay-item logo-item';
-  el.innerHTML = `<img src="logos/${num}.png" alt="logo" draggable="false">`;
-  el.appendChild(makeRotateHandle(item));
+  const img = document.createElement('img');
+  if (/^https?:/i.test(asset.src)) img.crossOrigin = 'anonymous';
+  img.src = asset.src; img.alt = 'logo'; img.draggable = false;
+  el.appendChild(img);
+  attachHandles(el, item);
   imageArea.appendChild(el);
   item.el = el;
+
   el.addEventListener('pointerdown', e => {
     if (e.pointerType !== 'mouse') return;
     e.stopPropagation();
@@ -428,24 +804,27 @@ function addLogo(num) {
     el.setPointerCapture(e.pointerId);
     startDrag(item, e.clientX, e.clientY);
   });
+
   overlayItems.push(item);
   setActive(item);
   placeItem(item);
+  loadImage(asset.src).catch(() => {});   // warm the cache for export
 }
 
-/* ── Add text ────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   Overlay items — text
+   ═══════════════════════════════════════════════════════════ */
 function addText() {
-  if (!photoNaturalImg) { showToast(STRINGS[currentLang].toastNoPhoto); return; }
+  if (!photoNaturalImg) { showToast(t().toastNoPhoto); return; }
   if (isTyping()) blurText();
   const cW = photoCanvas.clientWidth, cH = photoCanvas.clientHeight;
   const item = {
     id: nextId++, type: 'text',
-    x: cW / 2,                      // centre X of text box
-    y: Math.round(cH * 0.3),        // top Y of text box
-    maxWidth: cW - 16,               // box grows up to this, then wraps
+    x: cW / 2, y: Math.round(cH * 0.3),
+    maxWidth: cW - 16,
     baseFontSize: 30,
     scale: 1, rotation: 0, el: null,
-    colorScheme: 'light'             // 'dark' = white text/black box, 'light' = black text/white box
+    colorScheme: 'light'
   };
 
   const el = document.createElement('div');
@@ -460,28 +839,25 @@ function addText() {
   display.textContent = 'TEXT';
 
   el.appendChild(display);
-  el.appendChild(makeRotateHandle(item));
+  attachHandles(el, item);
   imageArea.appendChild(el);
   item.el = el;
 
-  // Freeze width on blur and capture exact CSS line breaks for canvas export
   display.addEventListener('blur', () => {
     item.frozenWidth   = el.offsetWidth;
     item.renderedLines = captureRenderedLines(display, item.frozenWidth);
     placeItem(item);
+    refreshTextToolbar();
   });
-  // On focus: switch to min-width mode so box can grow without reflow
-  display.addEventListener('focus', () => { placeItem(item); });
+  display.addEventListener('focus', () => { placeItem(item); refreshTextToolbar(); });
 
-  // Mouse drag with click-to-edit detection
   let mouseMoved = false;
   el.addEventListener('pointerdown', e => {
     if (e.pointerType !== 'mouse') return;
     e.stopPropagation();
     setActive(item);
-    // If already editing and clicked inside text → let browser handle cursor positioning
     if (isTyping() && e.target === display) return;
-    e.preventDefault(); // prevent browser from focusing on mousedown
+    e.preventDefault();
     el.setPointerCapture(e.pointerId);
     mouseMoved = false;
     startDrag(item, e.clientX, e.clientY);
@@ -490,21 +866,12 @@ function addText() {
     if (e.pointerType !== 'mouse' || drag.item !== item) return;
     if (!mouseMoved && Math.hypot(e.clientX - drag.ox, e.clientY - drag.oy) > 4) {
       mouseMoved = true;
-      if (isTyping()) blurText(); // exit edit mode when dragging
+      if (isTyping()) blurText();
     }
   });
   el.addEventListener('pointerup', e => {
     if (e.pointerType !== 'mouse') return;
-    if (!mouseMoved) {
-      // Was a click, not a drag → enter edit mode
-      display.focus();
-      try {
-        const r = document.createRange();
-        r.selectNodeContents(display);
-        const s = window.getSelection();
-        s.removeAllRanges(); s.addRange(r);
-      } catch(_) {}
-    }
+    if (!mouseMoved) { display.focus(); selectAll(display); }
     mouseMoved = false;
   });
 
@@ -512,122 +879,39 @@ function addText() {
   setActive(item);
   placeItem(item);
 
-  // ⚠️ Must focus SYNCHRONOUSLY inside the click handler — no rAF or setTimeout!
-  // iOS only shows keyboard when focus() is called within the same gesture.
+  // ⚠️ Focus SYNCHRONOUSLY inside the click handler — no rAF/setTimeout.
+  // iOS only opens the keyboard when focus() happens in the same gesture.
   display.focus();
-  try {
-    const range = document.createRange();
-    range.selectNodeContents(display);
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
-  } catch(e) {}
-
+  selectAll(display);
 }
-
+function selectAll(node) {
+  try {
+    const r = document.createRange();
+    r.selectNodeContents(node);
+    const s = window.getSelection();
+    s.removeAllRanges(); s.addRange(r);
+  } catch (_) {}
+}
 btnAddText.addEventListener('click', addText);
 
-/* ── Text color toolbar ──────────────────────────────── */
-const textToolbar = document.getElementById('text-toolbar');
-const schemeDark  = document.getElementById('scheme-dark');
-const schemeLight = document.getElementById('scheme-light');
-
-function refreshSchemeBtns() {
-  const item = activeItem && activeItem.type === 'text' ? activeItem : null;
-  schemeDark.classList.toggle('active',  !!item && item.colorScheme !== 'light');
-  schemeLight.classList.toggle('active', !!item && item.colorScheme === 'light');
-}
-function applyScheme(scheme) {
-  if (!activeItem || activeItem.type !== 'text') return;
-  activeItem.colorScheme = scheme;
-  const display = activeItem.el.querySelector('.text-display');
-  display.classList.toggle('scheme-dark',  scheme === 'dark');
-  display.classList.toggle('scheme-light', scheme === 'light');
-  refreshSchemeBtns();
+/* ═══════════════════════════════════════════════════════════
+   Per-item handles: rotate (top-left) + delete (top-right)
+   ═══════════════════════════════════════════════════════════ */
+function attachHandles(el, item) {
+  el.appendChild(makeRotateHandle(item));
+  el.appendChild(makeDeleteHandle(item));
 }
 
-schemeDark.addEventListener('mousedown',   e => { e.preventDefault(); applyScheme('dark');  });
-schemeLight.addEventListener('mousedown',  e => { e.preventDefault(); applyScheme('light'); });
-schemeDark.addEventListener('touchstart',  e => { e.preventDefault(); applyScheme('dark');  }, { passive: false });
-schemeLight.addEventListener('touchstart', e => { e.preventDefault(); applyScheme('light'); }, { passive: false });
-
-function onViewportChange() {
-  const vv = window.visualViewport;
-  if (!vv) return;
-  const kbHeight = Math.round(window.innerHeight - vv.height);
-  const textActive = activeItem && activeItem.type === 'text';
-  if (kbHeight > 80 && textActive) {
-    textToolbar.style.bottom = kbHeight + 'px';
-    textToolbar.classList.add('visible');
-    refreshSchemeBtns();
-  } else {
-    textToolbar.classList.remove('visible');
-  }
-}
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', onViewportChange);
-  window.visualViewport.addEventListener('scroll', onViewportChange);
-}
-
-function blurText() {
-  const ae = document.activeElement;
-  if (ae && ae.contentEditable === 'true') ae.blur();
-}
-
-/* ── Set active ──────────────────────────────────────── */
-function setActive(item) {
-  if (activeItem) activeItem.el.classList.remove('item-active');
-  activeItem = item;
-  if (item) item.el.classList.add('item-active');
-  refreshControls();
-}
-
-/* ── Place item ──────────────────────────────────────── */
-function placeItem(item) {
-  const canvasL = parseFloat(photoCanvas.style.left) || 0;
-  const canvasT = parseFloat(photoCanvas.style.top)  || 0;
-  const el = item.el;
-
-  if (item.type === 'logo') {
-    const size = item.baseSize * item.scale;
-    el.style.width     = size + 'px';
-    el.style.height    = size + 'px';
-    el.style.left      = (canvasL + item.x - size / 2) + 'px';
-    el.style.top       = (canvasT + item.y - size / 2) + 'px';
-    el.style.transform = `rotate(${item.rotation}deg)`;
-  } else {
-    // Text: while editing use min-width (no reflow, still allows growth)
-    //       while dragging use fixed width (no reflow from wrap changes)
-    const isFocused = document.activeElement === el.querySelector('.text-display');
-    if (isFocused) {
-      el.style.width    = '';
-      el.style.minWidth = (item.frozenWidth || 0) + 'px';
-      el.style.maxWidth = item.maxWidth + 'px';
-    } else if (item.frozenWidth) {
-      el.style.width    = item.frozenWidth + 'px';
-      el.style.minWidth = '';
-      el.style.maxWidth = 'none';
-    } else {
-      el.style.width    = '';
-      el.style.minWidth = '0';
-      el.style.maxWidth = item.maxWidth + 'px';
-    }
-    el.style.left            = (canvasL + item.x) + 'px';
-    el.style.top             = (canvasT + item.y) + 'px';
-    el.style.transform       = `translateX(-50%) rotate(${item.rotation}deg) scale(${item.scale})`;
-    el.style.transformOrigin = '50% 0';
-  }
-}
-
-/* ── Rotate handle ───────────────────────────────────── */
 function makeRotateHandle(item) {
   const handle = document.createElement('div');
-  handle.className = 'rotate-handle';
+  handle.className = 'item-handle rotate-handle';
   let startAngle = 0, startRotation = 0, rotating = false;
 
   function pivotInPage() {
+    const r = imageArea.getBoundingClientRect();
     const cL = parseFloat(photoCanvas.style.left) || 0;
     const cT = parseFloat(photoCanvas.style.top)  || 0;
-    return { x: cL + item.x, y: cT + item.y };
+    return { x: r.left + cL + item.x, y: r.top + cT + item.y };
   }
 
   handle.addEventListener('pointerdown', e => {
@@ -652,28 +936,134 @@ function makeRotateHandle(item) {
   return handle;
 }
 
-/* ── Refresh controls ────────────────────────────────── */
-function refreshControls() {
-  btnDelete.disabled = !activeItem;
+function makeDeleteHandle(item) {
+  const handle = document.createElement('div');
+  handle.className = 'item-handle delete-handle';
+  const kill = e => { e.stopPropagation(); e.preventDefault(); deleteItem(item); };
+  handle.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); });
+  handle.addEventListener('click', kill);
+  handle.addEventListener('touchend', kill, { passive: false });
+  return handle;
 }
 
-/* ── Scroll wheel zoom (desktop) ────────────────────── */
+function deleteItem(item) {
+  blurText();
+  item.el.remove();
+  overlayItems = overlayItems.filter(i => i !== item);
+  if (activeItem === item) {
+    activeItem = null;
+    const last = overlayItems.length ? overlayItems[overlayItems.length - 1] : null;
+    if (last) setActive(last); else refreshTextToolbar();
+  }
+}
+
+function setActive(item) {
+  if (activeItem) activeItem.el.classList.remove('item-active');
+  activeItem = item;
+  if (item) item.el.classList.add('item-active');
+  refreshTextToolbar();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Positioning
+   ═══════════════════════════════════════════════════════════ */
+function placeItem(item) {
+  const canvasL = parseFloat(photoCanvas.style.left) || 0;
+  const canvasT = parseFloat(photoCanvas.style.top)  || 0;
+  const el = item.el;
+
+  if (item.type === 'logo') {
+    const size = item.baseSize * item.scale;
+    el.style.width     = size + 'px';
+    el.style.height    = size + 'px';
+    el.style.left      = (canvasL + item.x - size / 2) + 'px';
+    el.style.top       = (canvasT + item.y - size / 2) + 'px';
+    el.style.transform = `rotate(${item.rotation}deg)`;
+  } else {
+    // While editing: min-width so the box can grow without reflow.
+    // While dragging: fixed width so wrapping never shifts under the finger.
+    const isFocused = document.activeElement === el.querySelector('.text-display');
+    if (isFocused) {
+      el.style.width    = '';
+      el.style.minWidth = (item.frozenWidth || 0) + 'px';
+      el.style.maxWidth = item.maxWidth + 'px';
+    } else if (item.frozenWidth) {
+      el.style.width    = item.frozenWidth + 'px';
+      el.style.minWidth = '';
+      el.style.maxWidth = 'none';
+    } else {
+      el.style.width    = '';
+      el.style.minWidth = '0';
+      el.style.maxWidth = item.maxWidth + 'px';
+    }
+    el.style.left            = (canvasL + item.x) + 'px';
+    el.style.top             = (canvasT + item.y) + 'px';
+    el.style.transform       = `translateX(-50%) rotate(${item.rotation}deg) scale(${item.scale})`;
+    el.style.transformOrigin = '50% 0';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Text colour toolbar
+   ═══════════════════════════════════════════════════════════ */
+const textToolbar = $('text-toolbar');
+const schemeDark  = $('scheme-dark');
+const schemeLight = $('scheme-light');
+
+function refreshTextToolbar() {
+  const item = activeItem && activeItem.type === 'text' ? activeItem : null;
+  textToolbar.classList.toggle('visible', !!item);
+  if (!item) return;
+  schemeDark.classList.toggle('active',  item.colorScheme !== 'light');
+  schemeLight.classList.toggle('active', item.colorScheme === 'light');
+  positionTextToolbar();
+}
+function positionTextToolbar() {
+  const vv = window.visualViewport;
+  const kb = vv ? Math.round(window.innerHeight - vv.height - vv.offsetTop) : 0;
+  textToolbar.style.bottom = (kb > 80 ? kb : 0) + 'px';
+}
+function applyScheme(scheme) {
+  if (!activeItem || activeItem.type !== 'text') return;
+  activeItem.colorScheme = scheme;
+  const display = activeItem.el.querySelector('.text-display');
+  display.classList.toggle('scheme-dark',  scheme === 'dark');
+  display.classList.toggle('scheme-light', scheme === 'light');
+  refreshTextToolbar();
+}
+schemeDark.addEventListener('mousedown',   e => { e.preventDefault(); applyScheme('dark');  });
+schemeLight.addEventListener('mousedown',  e => { e.preventDefault(); applyScheme('light'); });
+schemeDark.addEventListener('touchstart',  e => { e.preventDefault(); applyScheme('dark');  }, { passive: false });
+schemeLight.addEventListener('touchstart', e => { e.preventDefault(); applyScheme('light'); }, { passive: false });
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', positionTextToolbar);
+  window.visualViewport.addEventListener('scroll', positionTextToolbar);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Zoom (desktop wheel) + Escape
+   ═══════════════════════════════════════════════════════════ */
 imageArea.addEventListener('wheel', e => {
   if (!activeItem || !photoNaturalImg) return;
   e.preventDefault();
-  const delta = e.deltaY > 0 ? 0.93 : 1.08; // scroll down = shrink, up = grow
+  const delta = e.deltaY > 0 ? 0.93 : 1.08;
   activeItem.scale = Math.min(6, Math.max(0.1, activeItem.scale * delta));
   placeItem(activeItem);
 }, { passive: false });
 
-/* ── Escape key = finish text editing ───────────────── */
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') blurText();
+  if (e.key === 'Escape') {
+    if (modalAddPfp.classList.contains('visible')) { closeAddPfp(); return; }
+    blurText();
+  }
 });
 
-/* ── Drag ────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   Drag (pointer / mouse)
+   ═══════════════════════════════════════════════════════════ */
 let drag = { on: false, item: null, ox: 0, oy: 0, lx: 0, ly: 0 };
-let pendingTextFocus = null; // text item to focus on touchend if tap (not drag)
+let pendingTextFocus = null;
 
 function startDrag(item, cx, cy) {
   drag.on = true; drag.item = item;
@@ -683,9 +1073,14 @@ function startDrag(item, cx, cy) {
 
 document.addEventListener('pointermove', e => {
   if (!drag.on || !drag.item) return;
-  const item = drag.item;
+  moveDragged(drag.item, e.clientX, e.clientY);
+});
+document.addEventListener('pointerup',     () => { drag.on = false; drag.item = null; });
+document.addEventListener('pointercancel', () => { drag.on = false; drag.item = null; });
+
+function moveDragged(item, cx, cy) {
   const cW = photoCanvas.clientWidth, cH = photoCanvas.clientHeight;
-  const dx = e.clientX - drag.ox, dy = e.clientY - drag.oy;
+  const dx = cx - drag.ox, dy = cy - drag.oy;
   if (item.type === 'text') {
     item.x = drag.lx + dx;
     item.y = drag.ly + dy;
@@ -694,14 +1089,13 @@ document.addEventListener('pointermove', e => {
     item.y = Math.max(0, Math.min(cH, drag.ly + dy));
   }
   placeItem(item);
-});
-document.addEventListener('pointerup',     () => { drag.on = false; drag.item = null; });
-document.addEventListener('pointercancel', () => { drag.on = false; drag.item = null; });
+}
 
-/* ── Touch ───────────────────────────────────────────── */
-let pinch     = { on: false, d0: 0, s0: 1, angle0: 0, r0: 0 };
+/* ═══════════════════════════════════════════════════════════
+   Touch: drag, pinch zoom, two-finger rotate
+   ═══════════════════════════════════════════════════════════ */
+let pinch      = { on: false, d0: 0, s0: 1, angle0: 0, r0: 0 };
 let touchMoved = false;
-// pending drag (for text items where we delay until movement detected)
 let pendingDrag = { active: false, ox: 0, oy: 0 };
 
 function touchDist(t)  { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
@@ -713,36 +1107,30 @@ function isTouchOnItem(touch, item) {
 }
 
 imageArea.addEventListener('touchstart', e => {
+  // Handles manage their own touches
+  if (e.target.classList && e.target.classList.contains('item-handle')) return;
+
   if (e.touches.length === 1) {
     const touch = e.touches[0];
-    touchMoved   = false;
+    touchMoved = false;
     pendingDrag.active = false;
 
-    // Hit-test
     let hitItem = null;
     for (let i = overlayItems.length - 1; i >= 0; i--) {
       if (isTouchOnItem(touch, overlayItems[i])) { hitItem = overlayItems[i]; break; }
     }
     if (hitItem) setActive(hitItem);
-
     if (!activeItem) return;
 
     if (activeItem.type === 'text' && !isTyping()) {
-      // Text item not focused: tap should focus/show keyboard — don't preventDefault
+      // Don't preventDefault — the browser needs to focus the contenteditable
       pendingDrag.active = true;
       pendingDrag.ox = touch.clientX;
       pendingDrag.oy = touch.clientY;
       drag.item = activeItem;
-      drag.lx   = activeItem.x;
-      drag.ly   = activeItem.y;
-      pendingTextFocus = activeItem; // focus on touchend if no drag
-      // Do NOT preventDefault — browser will focus contenteditable on tap
-    } else if (activeItem.type === 'text' && isTyping()) {
-      // Keyboard already up: touch on image = drag text item
-      e.preventDefault();
-      startDrag(activeItem, touch.clientX, touch.clientY);
+      drag.lx = activeItem.x; drag.ly = activeItem.y;
+      pendingTextFocus = activeItem;
     } else {
-      // Logo item: drag from anywhere
       e.preventDefault();
       startDrag(activeItem, touch.clientX, touch.clientY);
     }
@@ -765,34 +1153,22 @@ imageArea.addEventListener('touchmove', e => {
   if (e.touches.length >= 1) {
     const touch = e.touches[0];
 
-    // Convert pending drag to real drag once movement detected
     if (pendingDrag.active && drag.item) {
       const dx = touch.clientX - pendingDrag.ox, dy = touch.clientY - pendingDrag.oy;
       if (Math.hypot(dx, dy) > 8) {
         pendingDrag.active = false;
-        pendingTextFocus = null; // drag started — cancel pending focus
+        pendingTextFocus = null;
         drag.on = true;
         drag.ox = pendingDrag.ox;
         drag.oy = pendingDrag.oy;
         touchMoved = true;
-        blurText(); // dismiss keyboard when dragging starts
+        blurText();
       }
     }
 
     if (drag.on && drag.item) {
-      const dx = touch.clientX - drag.ox, dy = touch.clientY - drag.oy;
       touchMoved = true;
-      const item = drag.item;
-      const cW = photoCanvas.clientWidth, cH = photoCanvas.clientHeight;
-      if (item.type === 'text') {
-        // Text can go anywhere — overflow:hidden clips it naturally
-        item.x = drag.lx + dx;
-        item.y = drag.ly + dy;
-      } else {
-        item.x = Math.max(0, Math.min(cW, drag.lx + dx));
-        item.y = Math.max(0, Math.min(cH, drag.ly + dy));
-      }
-      placeItem(item);
+      moveDragged(drag.item, touch.clientX, touch.clientY);
     }
   }
 
@@ -805,109 +1181,84 @@ imageArea.addEventListener('touchmove', e => {
 
 imageArea.addEventListener('touchend', e => {
   const pf = pendingTextFocus;
-  pendingDrag.active  = false;
-  pendingTextFocus    = null;
+  pendingDrag.active = false;
+  pendingTextFocus   = null;
   if (e.touches.length === 0) { drag.on = false; drag.item = null; }
   if (e.touches.length < 2)   pinch.on = false;
-  // Tap on text item (no drag) — ensure display gets focus even if tap landed on padding
   if (pf && !touchMoved) {
-    pf.el.querySelector('.text-display')?.focus();
+    const d = pf.el.querySelector('.text-display');
+    if (d) d.focus();
   }
 });
 imageArea.addEventListener('touchcancel', () => {
   drag.on = false; drag.item = null; pinch.on = false; pendingDrag.active = false;
 });
 
-/* ── Delete ──────────────────────────────────────────── */
-btnDelete.addEventListener('click', () => {
-  if (!activeItem) return;
-  blurText();
-  activeItem.el.remove();
-  overlayItems = overlayItems.filter(i => i !== activeItem);
-  const last = overlayItems.length ? overlayItems[overlayItems.length - 1] : null;
-  activeItem = null;
-  if (last) setActive(last);
-  else refreshControls();
-});
-
-/* ── Capture exact CSS line breaks using DOM ruler ──────── */
-// Measures at the actual CSS font size (30px) so metrics match the browser exactly.
-// Canvas measureText at large sizes (e.g. 230px) has different hinting → wrong wraps.
+/* ═══════════════════════════════════════════════════════════
+   Text wrapping helpers for canvas export
+   ═══════════════════════════════════════════════════════════ */
+// Measures at the real CSS font size (30px) so line breaks match the browser
+// exactly; canvas measureText at huge sizes hints differently and wraps wrong.
 function captureRenderedLines(display, frozenW) {
   const text = (display.innerText || 'TEXT').trim().toUpperCase();
   if (!text) return ['TEXT'];
-  const innerW = frozenW - 28; // minus 14px padding each side
+  const innerW = frozenW - 28;   // minus 14px padding each side
 
   const ruler = document.createElement('span');
   ruler.style.cssText = [
     'font: 600 30px "Barlow Condensed",sans-serif',
-    'white-space: nowrap',
-    'position: fixed',
-    'visibility: hidden',
-    'top: -9999px',
-    'left: -9999px',
-    'pointer-events: none',
+    'white-space: nowrap', 'position: fixed', 'visibility: hidden',
+    'top: -9999px', 'left: -9999px', 'pointer-events: none',
   ].join(';');
   document.body.appendChild(ruler);
 
   const lines = [];
   for (const para of text.split('\n')) {
     if (!para) { lines.push(''); continue; }
-    const words = para.split(' ');
     let line = '';
-    for (const word of words) {
+    for (const word of para.split(' ')) {
       const test = line ? line + ' ' + word : word;
       ruler.textContent = test;
-      if (ruler.offsetWidth <= innerW) {
-        line = test;
-      } else {
-        if (line) lines.push(line);
-        ruler.textContent = word;
-        if (ruler.offsetWidth > innerW) {
-          // Word too wide — break by character
-          let chars = '';
-          for (const ch of word) {
-            ruler.textContent = chars + ch;
-            if (ruler.offsetWidth > innerW && chars) { lines.push(chars); chars = ch; }
-            else chars += ch;
-          }
-          line = chars;
-        } else {
-          line = word;
+      if (ruler.offsetWidth <= innerW) { line = test; continue; }
+      if (line) lines.push(line);
+      ruler.textContent = word;
+      if (ruler.offsetWidth > innerW) {
+        let chars = '';
+        for (const ch of word) {
+          ruler.textContent = chars + ch;
+          if (ruler.offsetWidth > innerW && chars) { lines.push(chars); chars = ch; }
+          else chars += ch;
         }
+        line = chars;
+      } else {
+        line = word;
       }
     }
     if (line) lines.push(line);
   }
   document.body.removeChild(ruler);
-  return lines.filter(l => l.length > 0) || ['TEXT'];
+  const out = lines.filter(l => l.length > 0);
+  return out.length ? out : ['TEXT'];
 }
 
-/* ── Canvas text wrap helper (word-first, then char fallback) ── */
-function canvasWrapText(ctx, text, maxWidth) {
+function canvasWrapText(c, text, maxWidth) {
   const result = [];
   for (const para of text.split('\n')) {
     if (!para) { result.push(''); continue; }
-    const words = para.split(' ');
     let line = '';
-    for (const word of words) {
+    for (const word of para.split(' ')) {
       const testLine = line ? line + ' ' + word : word;
-      if (ctx.measureText(testLine).width <= maxWidth) {
-        line = testLine;
-      } else {
-        if (line) result.push(line);
-        // Single word wider than maxWidth → break by character
-        if (ctx.measureText(word).width > maxWidth) {
-          let chars = '';
-          for (const ch of word) {
-            if (ctx.measureText(chars + ch).width > maxWidth && chars) {
-              result.push(chars); chars = ch;
-            } else { chars += ch; }
-          }
-          line = chars;
-        } else {
-          line = word;
+      if (c.measureText(testLine).width <= maxWidth) { line = testLine; continue; }
+      if (line) result.push(line);
+      if (c.measureText(word).width > maxWidth) {
+        let chars = '';
+        for (const ch of word) {
+          if (c.measureText(chars + ch).width > maxWidth && chars) { result.push(chars); chars = ch; }
+          else chars += ch;
         }
+        line = chars;
+      } else {
+        line = word;
       }
     }
     if (line) result.push(line);
@@ -915,7 +1266,9 @@ function canvasWrapText(ctx, text, maxWidth) {
   return result;
 }
 
-/* ── Save ────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   Save
+   ═══════════════════════════════════════════════════════════ */
 btnSave.addEventListener('click', async () => {
   if (!photoNaturalImg) return;
   blurText();
@@ -928,7 +1281,7 @@ btnSave.addEventListener('click', async () => {
   const octx = out.getContext('2d');
   octx.drawImage(photoNaturalImg, 0, 0);
 
-  const cW = photoCanvas.clientWidth,  cH = photoCanvas.clientHeight;
+  const cW = photoCanvas.clientWidth, cH = photoCanvas.clientHeight;
   const sx = photoNaturalImg.naturalWidth  / cW;
   const sy = photoNaturalImg.naturalHeight / cH;
 
@@ -938,63 +1291,51 @@ btnSave.addEventListener('click', async () => {
     octx.rotate(item.rotation * Math.PI / 180);
 
     if (item.type === 'logo') {
-      const lImg = new Image();
-      lImg.crossOrigin = 'anonymous';
-      lImg.src = `logos/${item.num}.png`;
-      await new Promise(r => { lImg.onload = r; lImg.onerror = r; });
-      const size   = item.baseSize * item.scale;
-      const natSz  = size * sx;
-      const aspect = lImg.naturalWidth / lImg.naturalHeight;
-      let drawW, drawH;
-      if (aspect >= 1) { drawW = natSz; drawH = natSz / aspect; }
-      else             { drawH = natSz; drawW = natSz * aspect; }
-      octx.drawImage(lImg, -drawW / 2, -drawH / 2, drawW, drawH);
+      let lImg = null;
+      try { lImg = await loadImage(item.src); } catch (_) {}
+      if (lImg) {
+        const natSz  = item.baseSize * item.scale * sx;
+        const aspect = lImg.naturalWidth / lImg.naturalHeight;
+        let drawW, drawH;
+        if (aspect >= 1) { drawW = natSz; drawH = natSz / aspect; }
+        else             { drawH = natSz; drawW = natSz * aspect; }
+        octx.drawImage(lImg, -drawW / 2, -drawH / 2, drawW, drawH);
+      }
 
     } else if (item.type === 'text') {
       const fs    = item.baseFontSize * item.scale * sx;
       const rendW = (item.frozenWidth || item.el.offsetWidth) * item.scale;
       const boxW  = rendW * sx;
-      // Padding scales with item.scale (matches CSS visual appearance)
       const padV  = 6  * item.scale * sx;
       const padH  = 14 * item.scale * sx;
       const maxW  = boxW - padH * 2;
       const lineH = fs * 1.25;
 
       octx.font = `600 ${fs}px "Barlow Condensed"`;
-
       const rawText = (item.el.querySelector('.text-display').innerText || 'TEXT').toUpperCase();
-      // Use DOM-captured lines (exact CSS wrapping) if available, else fall back to canvas measure
-      const lines = (item.renderedLines && item.renderedLines.length > 0)
+      const lines = (item.renderedLines && item.renderedLines.length)
         ? item.renderedLines
         : canvasWrapText(octx, rawText, maxW);
-      const boxH    = lines.length * lineH + padV * 2;
+      const boxH = lines.length * lineH + padV * 2;
 
-      // Box colour depends on colorScheme
-      const isDark  = (item.colorScheme || 'light') === 'dark';
-      const boxClr  = isDark ? '#000000' : '#ffffff';
-      const txtClr  = isDark ? '#ffffff' : '#000000';
-
-      octx.fillStyle = boxClr;
+      const isDark = (item.colorScheme || 'light') === 'dark';
+      octx.fillStyle = isDark ? '#000000' : '#ffffff';
       octx.fillRect(-boxW / 2, 0, boxW, boxH);
 
-      // Text — centred horizontally inside box
-      octx.fillStyle    = txtClr;
+      octx.fillStyle    = isDark ? '#ffffff' : '#000000';
       octx.textAlign    = 'center';
       octx.textBaseline = 'top';
-      lines.forEach((line, idx) => {
-        octx.fillText(line, 0, padV + idx * lineH);
-      });
+      lines.forEach((line, idx) => octx.fillText(line, 0, padV + idx * lineH));
     }
     octx.restore();
   }
 
   out.toBlob(async blob => {
     const file = new File([blob], 'SeismicLogo_photo.jpg', { type: 'image/jpeg' });
-    // Desktop → always download (Windows Share Sheet doesn't save to disk)
     if (!isDesktop && navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({ files: [file], title: 'SeismicLogo' });
-        showToast(STRINGS[currentLang].toastSaved);
+        showToast(t().toastSaved);
         btnSave.disabled = false; return;
       } catch (err) {
         if (err.name === 'AbortError') { btnSave.disabled = false; return; }
@@ -1006,29 +1347,35 @@ btnSave.addEventListener('click', async () => {
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 3000);
-    showToast(STRINGS[currentLang].toastDown);
+    showToast(t().toastDown);
     btnSave.disabled = false;
   }, 'image/jpeg', 0.95);
 });
 
-/* ── Toast ───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   Toast + resize
+   ═══════════════════════════════════════════════════════════ */
 let toastTimer;
 function showToast(msg) {
   clearTimeout(toastTimer);
-  const el = document.getElementById('toast');
+  const el = $('toast');
   el.textContent = msg;
   el.classList.add('show');
   toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
 }
 
-/* ── Resize ──────────────────────────────────────────── */
 window.addEventListener('resize', () => {
+  sizePfpCells();
+  updateArrows();
   if (photoNaturalImg) {
     drawPhoto();
-    overlayItems.forEach(item => placeItem(item));
+    overlayItems.forEach(placeItem);
   }
 });
+
+/* ── Boot ─────────────────────────────────────────────────── */
+setLang('en');
+sizePfpCells();
 </script>
 </body>
 </html>
-   
