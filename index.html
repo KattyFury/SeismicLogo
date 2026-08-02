@@ -58,14 +58,30 @@
       display: grid; grid-template-columns: 2fr 1fr;
       align-items: center; padding: 0 var(--side-margin); min-height: 0;
     }
-    #app-title {
+    /* Header title doubles as a mode toggle: the active side shows the
+       full label, the inactive side a short one — tap it to switch. */
+    #mode-toggle {
+      display: flex; align-items: baseline; gap: 6px; min-width: 0;
       font-family: 'Roboto Condensed', sans-serif;
-      font-weight: 700; letter-spacing: 0.2px; text-align: left;
-      font-size: clamp(15px, 4.4vw, 21px); line-height: 1.1;
-      color: var(--brown); white-space: nowrap;
-      overflow: hidden; text-overflow: ellipsis;
     }
-    #app-title .s { color: var(--brown-soft); }
+    .mode-toggle-btn {
+      background: none; border: none; padding: 0; margin: 0;
+      font-family: inherit; letter-spacing: 0.2px; cursor: pointer;
+    }
+    .mode-toggle-btn.active {
+      font-weight: 700; font-size: clamp(15px, 4.4vw, 21px); line-height: 1.1;
+      color: var(--brown); white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; min-width: 0; flex: 0 1 auto; cursor: default;
+    }
+    .mode-toggle-btn.active .s { color: var(--brown-soft); }
+    .mode-toggle-btn.inactive {
+      font-weight: 500; font-size: 13px; color: var(--brown-faint);
+      flex: 0 0 auto; white-space: nowrap;
+      text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 2px;
+      transition: opacity 0.15s;
+    }
+    .mode-toggle-btn.inactive:active { opacity: 0.55; }
+    .mode-toggle-sep { color: var(--line); font-size: 13px; flex: 0 0 auto; }
     #lang-switcher { display: flex; gap: 3px; justify-content: flex-end; }
     .lang-btn {
       padding: 4px 8px; border-radius: 6px; border: 1.5px solid var(--line);
@@ -313,7 +329,11 @@
 
   <!-- Row 1 -->
   <header id="header">
-    <h1 id="app-title"><span class="s">Seismic</span> logo &amp; PFP</h1>
+    <div id="mode-toggle">
+      <button type="button" id="toggle-seismic"  class="mode-toggle-btn active"><span class="s">Seismic</span> logo &amp; PFP</button>
+      <span class="mode-toggle-sep">|</span>
+      <button type="button" id="toggle-personal" class="mode-toggle-btn inactive">Personal</button>
+    </div>
     <div id="lang-switcher">
       <button class="lang-btn lang-active" id="btn-en">EN</button>
       <button class="lang-btn"             id="btn-vi">VI</button>
@@ -431,6 +451,8 @@ const STRINGS = {
   en: {
     titleSeismic:  '<span class="s">Seismic</span> logo &amp; PFP',
     titlePersonal: '<span class="s">Personal</span> logo &amp; PFP',
+    shortSeismic:  'Seismic',
+    shortPersonal: 'Personal',
     placeholder:  'Tap to choose a photo',
     hint:         'Choose a photo, pick a PFP, drag anywhere to move – 2 fingers to zoom & rotate – X to delete',
     addPfp:       'Add more PFP',
@@ -459,6 +481,8 @@ const STRINGS = {
   vi: {
     titleSeismic:  '<span class="s">Seismic</span> logo &amp; PFP',
     titlePersonal: '<span class="s">Personal</span> logo &amp; PFP',
+    shortSeismic:  'Seismic',
+    shortPersonal: 'Personal',
     placeholder:  'Nhấn để chọn ảnh',
     hint:         'Chọn ảnh, chọn PFP, kéo bất cứ đâu để di chuyển – 2 ngón để zoom & xoay – X để xóa',
     addPfp:       'Thêm PFP',
@@ -497,7 +521,7 @@ function setLang(lang) {
   const s = t();
   $('btn-en').classList.toggle('lang-active', lang === 'en');
   $('btn-vi').classList.toggle('lang-active', lang === 'vi');
-  $('app-title').innerHTML = currentMode === 'personal' ? s.titlePersonal : s.titleSeismic;
+  renderModeToggle();
   $('placeholder-text').textContent = s.placeholder;
   $('gesture-hint').textContent   = s.hint;
   $('lbl-addpfp').textContent     = s.addPfp;
@@ -516,6 +540,22 @@ function setLang(lang) {
 }
 $('btn-en').addEventListener('click', () => setLang('en'));
 $('btn-vi').addEventListener('click', () => setLang('vi'));
+
+/* Header title doubles as a mode toggle — active side shows the full
+   label, the other side a short one; tapping the short side switches. */
+const toggleSeismicBtn  = $('toggle-seismic');
+const togglePersonalBtn = $('toggle-personal');
+
+function renderModeToggle() {
+  const s = t();
+  const seismicActive = currentMode !== 'personal';
+  toggleSeismicBtn.className  = 'mode-toggle-btn ' + (seismicActive ? 'active' : 'inactive');
+  toggleSeismicBtn.innerHTML  = seismicActive ? s.titleSeismic : s.shortSeismic;
+  togglePersonalBtn.className = 'mode-toggle-btn ' + (seismicActive ? 'inactive' : 'active');
+  togglePersonalBtn.innerHTML = seismicActive ? s.shortPersonal : s.titlePersonal;
+}
+toggleSeismicBtn.addEventListener('click',  () => { if (currentMode !== 'seismic')  startMode('seismic');  });
+togglePersonalBtn.addEventListener('click', () => { if (currentMode !== 'personal') startMode('personal'); });
 
 /* ═══════════════════════════════════════════════════════════
    State
