@@ -30,6 +30,7 @@
       --neon:         #39FF14;
       --gap:          6px;
       --side-margin:  20px;   /* every row aligns to this left/right edge */
+      --section-gap:  10px;   /* vertical breathing room between sections */
     }
 
     *, *::before, *::after {
@@ -42,26 +43,29 @@
       overscroll-behavior: none;
     }
 
-    /* ── 10-row layout ─────────────────────────────────────────
-       Modelled as 30 equal sub-rows so the spec's "1/3 of a row"
-       boundaries land exactly. Spec row N = sub-rows 3N-2 … 3N.   */
+    /* ── Layout ─────────────────────────────────────────────────
+       Flex column: header + action row size to their content, the
+       photo box takes whatever space is left, caption and PFP grid
+       are fixed-height — --section-gap keeps even spacing between
+       all of them instead of the old rigid 30-sub-row proportions.  */
     #app {
       height: 100vh; height: 100dvh;
-      display: grid;
-      grid-template-rows: repeat(30, 1fr);
+      display: flex; flex-direction: column;
+      gap: var(--section-gap);
       background: #fff;
     }
-    /* Grid items default to min-width:auto (= content's intrinsic width).
-       #pfp-grid can grow arbitrarily wide (width:max-content, N columns),
-       and without this override that width bubbles up and blows out the
-       whole single-column #app grid — not just the PFP row. */
+    /* Flex items default to min-width:auto (= content's intrinsic width)
+       on the cross axis. #pfp-grid can grow arbitrarily wide
+       (width:max-content, N columns), and without this override that
+       width bubbles up and blows out the whole column — not just the
+       PFP row. */
     #app > * { min-width: 0; }
 
-    /* ── Row 1 (top 2/3): title + language ─────────────────── */
+    /* ── Header: title + language ─────────────────────────────── */
     #header {
-      grid-row: 1 / 3;
+      flex: 0 0 auto;
       display: grid; grid-template-columns: 2fr 1fr;
-      align-items: center; padding: 0 var(--side-margin); min-height: 0;
+      align-items: center; padding: 10px var(--side-margin) 0; min-height: 0;
     }
     /* Header title doubles as a mode toggle: the active side shows the
        full label, the inactive side a short one — tap it to switch. */
@@ -96,9 +100,9 @@
     }
     .lang-btn.lang-active { background: var(--brown-soft); border-color: var(--brown-soft); color: #fff; }
 
-    /* ── Row 1 (bottom 1/3) → row 7 (first 1/3): photo ─────── */
+    /* ── Photo box — flexes to fill whatever space is left ───── */
     #image-area {
-      grid-row: 3 / 20; min-height: 0;
+      flex: 1 1 auto; min-height: 0;
       position: relative; overflow: hidden;
       margin: 0 var(--side-margin); border-radius: 14px;
       background: var(--grey-fill);
@@ -121,23 +125,23 @@
     }
     #btn-clear-photo.visible { display: flex; }
 
-    /* ── Row 7 (last 2/3): caption ──────────────────────────── */
+    /* ── Caption — fixed 2-line break, not auto-wrap ──────────── */
     #hint-strip {
-      grid-row: 20 / 22; min-height: 0;
+      flex: 0 0 auto;
       display: flex; align-items: center; justify-content: center;
       padding: 0 var(--side-margin);
     }
     #gesture-hint {
-      font-size: clamp(11px, 3.2vw, 13px); line-height: 1.3;
+      font-size: clamp(11px, 3.2vw, 13px); line-height: 1.35;
       color: var(--brown-faint); text-align: center;
-      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+      white-space: pre-line;   /* the \n in the string is an intentional line break */
     }
 
-    /* ── Rows 8-9: PFP grid — same 20px --side-margin as every other row;
-       swipe arrows float over the edge PFPs rather than getting their
-       own gutter ── */
+    /* ── PFP grid — fixed height, same 20px --side-margin as every
+       other row; swipe arrows float over the edge PFPs rather than
+       getting their own gutter ── */
     #pfp-wrap {
-      grid-row: 22 / 28; min-height: 0; position: relative;
+      flex: 0 0 auto; height: 130px; position: relative;
     }
     .swipe-arrow {
       display: none; position: absolute; top: 50%; transform: translateY(-50%);
@@ -192,11 +196,11 @@
     }
     .pfp-delete-badge:active { transform: scale(0.9); }
 
-    /* ── Row 10: three equally sized actions ───────────────── */
+    /* ── Bottom row: three equally sized actions ─────────────── */
     #action-row {
-      grid-row: 28 / 31; min-height: 0;
+      flex: 0 0 auto; height: 46px;
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-      padding: 8px var(--side-margin) 10px; align-items: center;
+      padding: 0 var(--side-margin) 12px; align-items: center;
     }
     .btn {
       width: 100%; height: 100%; max-height: 46px; min-height: 36px;
@@ -344,7 +348,7 @@
 
 <div id="app">
 
-  <!-- Row 1 -->
+  <!-- Header -->
   <header id="header">
     <div id="mode-toggle">
       <button type="button" id="toggle-seismic"  class="mode-toggle-btn active"><span class="s">Seismic</span> logo &amp; PFP</button>
@@ -357,7 +361,7 @@
     </div>
   </header>
 
-  <!-- Rows 1(bottom)–7(top): photo -->
+  <!-- Photo box -->
   <section id="image-area">
     <div id="image-placeholder">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
@@ -376,12 +380,13 @@
     </button>
   </section>
 
-  <!-- Row 7 (last 2/3): caption -->
+  <!-- Caption -->
   <div id="hint-strip">
-    <p id="gesture-hint">Choose a photo, pick a PFP, drag anywhere to move – 2 fingers to zoom &amp; rotate – X to delete</p>
+    <p id="gesture-hint">Choose a photo, pick a PFP, drag anywhere to move
+– 2 fingers to zoom &amp; rotate – X to delete</p>
   </div>
 
-  <!-- Rows 8–9: PFP grid, swipe arrows centred over it within the side margins -->
+  <!-- PFP grid, swipe arrows centred over it within the side margins -->
   <div id="pfp-wrap">
     <button class="swipe-arrow" id="arrow-left" aria-label="Scroll left">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -394,7 +399,7 @@
     </button>
   </div>
 
-  <!-- Row 10 -->
+  <!-- Actions -->
   <div id="action-row">
     <button class="btn btn-outline" id="btn-addpfp">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
@@ -482,7 +487,7 @@ const STRINGS = {
     shortSeismic:  'Seismic',
     shortPersonal: 'Personal',
     placeholder:  'Tap to choose a photo',
-    hint:         'Choose a photo, pick a PFP, drag anywhere to move – 2 fingers to zoom & rotate – X to delete',
+    hint:         'Choose a photo, pick a PFP, drag anywhere to move\n– 2 fingers to zoom & rotate – X to delete',
     addPfp:       'Add more PFP',
     addText:      'Add text',
     saveImage:    'Save image',
@@ -513,7 +518,7 @@ const STRINGS = {
     shortSeismic:  'Seismic',
     shortPersonal: 'Personal',
     placeholder:  'Nhấn để chọn ảnh',
-    hint:         'Chọn ảnh, chọn PFP, kéo bất cứ đâu để di chuyển – 2 ngón để zoom & xoay – X để xóa',
+    hint:         'Chọn ảnh, chọn PFP, kéo bất cứ đâu để di chuyển\n– 2 ngón để zoom & xoay – X để xóa',
     addPfp:       'Thêm PFP',
     addText:      'Thêm chữ',
     saveImage:    'Lưu ảnh',
