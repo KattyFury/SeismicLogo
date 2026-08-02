@@ -139,7 +139,9 @@
       grid-template-rows: var(--cell, 56px) var(--cell, 56px);
       grid-auto-columns: var(--cell, 56px);
       gap: var(--gap);
-      width: max-content; margin: auto;
+      width: max-content;
+      /* No auto-margin centering — once PFPs overflow past 10, an auto
+         margin fights the scroller's overflow-x and breaks alignment. */
       height: 100%; align-content: center;
     }
     .pfp-cell {
@@ -452,6 +454,7 @@ const STRINGS = {
     toastBadHandle:'That does not look like an X link or handle',
     toastAdded:   n => `Added ${n} PFP${n > 1 ? 's' : ''} ✓`,
     toastXFailed: 'Could not load that X avatar',
+    toastSaveFailed: 'Added, but could not save for next time (storage full)',
   },
   vi: {
     titleSeismic:  '<span class="s">Seismic</span> logo &amp; PFP',
@@ -479,6 +482,7 @@ const STRINGS = {
     toastBadHandle:'Đây không giống link X hoặc handle',
     toastAdded:   n => `Đã thêm ${n} PFP ✓`,
     toastXFailed: 'Không tải được avatar X đó',
+    toastSaveFailed: 'Đã thêm nhưng không lưu được cho lần sau (bộ nhớ đầy)',
   }
 };
 let currentLang = 'en';
@@ -523,7 +527,8 @@ let photoNaturalImg = null;
 let overlayItems    = [];
 let activeItem      = null;
 let nextId          = 1;
-let pfpList         = [];   // [{ src, fallback?, label }]
+let pfpList         = [];   // [{ src, fallback?, label }] — defaults + custom, what's rendered
+let customPfps      = [];   // just the user-added ones, persisted per mode
 
 const imageArea   = $('image-area');
 const tapLayer    = $('tap-layer');
@@ -538,17 +543,41 @@ const pfpScroller = $('pfp-scroller');
 const pfpGrid     = $('pfp-grid');
 
 /* ═══════════════════════════════════════════════════════════
+   Custom PFPs persist per mode across reloads (localStorage) —
+   the built-in Seismic defaults come from assets.js, not storage.
+   ═══════════════════════════════════════════════════════════ */
+const CUSTOM_PFP_KEY_PREFIX = 'seismiclogo_custom_pfps_';
+
+function loadCustomPfps(mode) {
+  try {
+    const raw = localStorage.getItem(CUSTOM_PFP_KEY_PREFIX + mode);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch (_) { return []; }
+}
+function saveCustomPfps(mode) {
+  try {
+    localStorage.setItem(CUSTOM_PFP_KEY_PREFIX + mode, JSON.stringify(customPfps));
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
    Mode selection
    ═══════════════════════════════════════════════════════════ */
 function startMode(mode) {
   currentMode = mode;
-  pfpList = mode === 'seismic'
+  const defaults = mode === 'seismic'
     ? SEISMIC_ASSETS.map(a => ({
         src:      a.src,
         fallback: a.kind === 'x' ? xAvatarUrl(a.handle) : null,
         label:    a.label || ''
       }))
     : [];
+  customPfps = loadCustomPfps(mode);
+  pfpList = defaults.concat(customPfps);
   $('modal-mode').classList.remove('visible');
   setLang(currentLang);   // updates the header title for the chosen mode
   renderPfpGrid();
@@ -665,12 +694,24 @@ function parseXHandle(raw) {
   return /^[A-Za-z0-9_]{1,15}$/.test(v) ? v : null;
 }
 
-function readFileAsDataURL(file) {
+// Downscales gallery picks to a PFP-sized thumbnail before storing — original
+// photos can be several MB, which would blow through localStorage's quota.
+function resizeImageFile(file, maxDim = 400, quality = 0.85) {
   return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload  = e => resolve(e.target.result);
-    r.onerror = reject;
-    r.readAsDataURL(file);
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width  * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image load failed')); };
+    img.src = url;
   });
 }
 
@@ -692,15 +733,17 @@ $('btn-addpfp-add').addEventListener('click', async () => {
     }
   }
   for (const f of files) {
-    try { added.push({ src: await readFileAsDataURL(f), fallback: null, label: f.name }); }
+    try { added.push({ src: await resizeImageFile(f), fallback: null, label: f.name }); }
     catch (_) { /* skip unreadable file */ }
   }
   if (!added.length) { showToast(t().toastEmptyAdd); return; }
 
-  pfpList = pfpList.concat(added);
+  pfpList    = pfpList.concat(added);
+  customPfps = customPfps.concat(added);
+  const saved = saveCustomPfps(currentMode);
   closeAddPfp();
   renderPfpGrid();
-  showToast(t().toastAdded(added.length));
+  showToast(saved ? t().toastAdded(added.length) : t().toastSaveFailed);
 });
 
 /* ═══════════════════════════════════════════════════════════
