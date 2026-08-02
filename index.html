@@ -502,8 +502,6 @@ const STRINGS = {
     toastDown:    'Photo downloaded ✓',
     toastEmptyAdd:'Enter an X handle or pick some images first',
     toastBadHandle:'That does not look like an X link or handle',
-    toastAdded:   n => `Added ${n} PFP${n > 1 ? 's' : ''} ✓`,
-    toastXFailed: 'Could not load that X avatar',
     toastSaveFailed: 'Added, but could not save for next time (storage full)',
     removePfpTitle: 'Remove this PFP?',
     remove:       'Remove',
@@ -535,8 +533,6 @@ const STRINGS = {
     toastDown:    'Ảnh đã được tải xuống ✓',
     toastEmptyAdd:'Nhập handle X hoặc chọn ảnh trước đã',
     toastBadHandle:'Đây không giống link X hoặc handle',
-    toastAdded:   n => `Đã thêm ${n} PFP ✓`,
-    toastXFailed: 'Không tải được avatar X đó',
     toastSaveFailed: 'Đã thêm nhưng không lưu được cho lần sau (bộ nhớ đầy)',
     removePfpTitle: 'Xóa PFP này?',
     remove:       'Xóa',
@@ -842,7 +838,7 @@ $('btn-addpfp-add').addEventListener('click', async () => {
   const saved = saveCustomPfps(currentMode);
   closeAddPfp();
   renderPfpGrid();
-  showToast(saved ? t().toastAdded(added.length) : t().toastSaveFailed);
+  if (!saved) showToast(t().toastSaveFailed);   // the new PFPs already show up in the grid — no need to also toast success
 });
 
 /* ═══════════════════════════════════════════════════════════
